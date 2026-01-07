@@ -3,6 +3,7 @@ package com.ayawo.banque.ega.Transaction;
 import com.ayawo.banque.ega.Client.ClientRepository;
 import com.ayawo.banque.ega.Compte.CompteEntity;
 import com.ayawo.banque.ega.Compte.CompteRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class TransactionController {
     @PostMapping("/depot/{numeroCompte}")
     public ResponseEntity<?> effectuerDepot(
             @PathVariable String numeroCompte,
-            @RequestBody Map<String, Object> request) {
+            @Valid @RequestBody Map<String, Object> request) {
 
         if (!request.containsKey("montant")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -64,7 +65,7 @@ public class TransactionController {
 
         if (!compteOpt.isPresent()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Compte introuvable: " + numeroCompte);
+                    .body("Compte introuvable");
         }
 
         CompteEntity compte = compteOpt.get();
@@ -103,7 +104,7 @@ public class TransactionController {
     @PostMapping("/retrait/{numeroCompte}")
     public ResponseEntity<?> effectuerRetrait(
             @PathVariable String numeroCompte,
-            @RequestBody Map<String, Object> request) {
+            @Valid @RequestBody Map<String, Object> request) {
 
         if (!request.containsKey("montant")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -183,7 +184,7 @@ public class TransactionController {
     }
 
     @PostMapping("/virement")
-    public ResponseEntity<?> effectuerVirement(@RequestBody Map<String, Object> request) {
+    public ResponseEntity<?> effectuerVirement(@Valid @RequestBody Map<String, Object> request) {
 
         if (!request.containsKey("compteSource")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

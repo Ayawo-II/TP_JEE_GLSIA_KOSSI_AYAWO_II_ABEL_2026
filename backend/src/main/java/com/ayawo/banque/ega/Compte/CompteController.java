@@ -1,6 +1,7 @@
 package com.ayawo.banque.ega.Compte;
 
 import com.ayawo.banque.ega.Client.ClientEntity;
+import com.ayawo.banque.configuration.NotFoundException;
 import com.ayawo.banque.ega.Client.ClientRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -30,7 +32,7 @@ public class CompteController {
     public ResponseEntity<?> createCompte(@Valid @RequestBody CompteEntity compte) {
 
         if (compte.getClient() == null || compte.getClient().getId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("L'ID du client est requis");
+            throw new NotFoundException("L'ID du client est requis");
         }
 
         Long clientId = compte.getClient().getId();
@@ -61,24 +63,26 @@ public class CompteController {
     @GetMapping
     public ResponseEntity<List<CompteEntity>> getAllComptes() {
         List<CompteEntity> comptes = compteRepository.findAll();
-        return ResponseEntity.ok(comptes);
+        return new ResponseEntity<>(comptes, HttpStatus.OK);
     }
 
     @GetMapping("/{numeroCompte}")
     public ResponseEntity<?> getCompteByNumero(@PathVariable String numeroCompte) {
-        CompteEntity compte = compteRepository.findById(numeroCompte)
-                .orElseThrow(() -> new RuntimeException("Compte introuvable avec le numéro: " + numeroCompte));
+        Optional<CompteEntity> compte = compteRepository.findById(numeroCompte);
+        if (compte.isEmpty()) {
+            throw new NotFoundException("Compte introuvable");
+        }
 
-        return ResponseEntity.ok(compte);
+        return new ResponseEntity<>(compte, HttpStatus.OK);
     }
 
     @GetMapping("/client/{clientId}")
     public ResponseEntity<List<CompteEntity>> getComptesByClient(@PathVariable Long clientId) {
         clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client introuvable avec l'ID: " + clientId));
+                .orElseThrow(() -> new NotFoundException("Client introuvable"));
 
         List<CompteEntity> comptes = compteRepository.findByClientId(clientId);
-        return ResponseEntity.ok(comptes);
+        return new ResponseEntity<>(comptes, HttpStatus.OK);
     }
 
     @PutMapping("/{numeroCompte}")
@@ -87,12 +91,22 @@ public class CompteController {
             @Valid @RequestBody CompteEntity compteUpdates) {
 
         CompteEntity compte = compteRepository.findById(numeroCompte)
-                .orElseThrow(() -> new RuntimeException("Compte introuvable avec le numéro: " + numeroCompte));
+                .orElseThrow(() -> new NotFoundException("Compte introuvable"));
 
         compte.setTypeCompte(compteUpdates.getTypeCompte());
+        compte.setSolde(compteUpdates.getSolde());
 
-        CompteEntity updated = compteRepository.save(compte);
-        return ResponseEntity.ok(updated);
+        if (compteUpdates.getClient() != null && compteUpdates.getClient().getId() != null) {
+
+            ClientEntity clientComplet = clientRepository.findById(
+                    compteUpdates.getClient().getId()
+            ).orElseThrow(() -> new NotFoundException("Client introuvable"));
+
+            compte.setClient(clientComplet);
+        }
+
+        CompteEntity updatedCompte = compteRepository.save(compte);
+        return new ResponseEntity<>(updatedCompte, HttpStatus.OK);
     }
 
     @DeleteMapping("/{numeroCompte}")

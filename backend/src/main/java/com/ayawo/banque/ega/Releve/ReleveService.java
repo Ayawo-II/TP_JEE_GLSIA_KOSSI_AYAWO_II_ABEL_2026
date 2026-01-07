@@ -78,8 +78,12 @@ public class ReleveService {
         return baos.toByteArray();
     }
 
-    private void ajouterEnTete(Document document, CompteEntity compte,
-                               LocalDate dateDebut, LocalDate dateFin) throws IOException {
+    private void ajouterEnTete(
+            Document document,
+            CompteEntity compte,
+            LocalDate dateDebut,
+            LocalDate dateFin
+    ) throws IOException {
 
         // Police pour le titre
         PdfFont fontTitre = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);

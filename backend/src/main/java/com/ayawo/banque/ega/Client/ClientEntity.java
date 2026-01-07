@@ -1,15 +1,29 @@
 package com.ayawo.banque.ega.Client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
-import java.util.Date;
 
 @Data
 @Entity
 @Table(name = "clients")
+@JsonPropertyOrder({
+        "id",
+        "nom",
+        "prenom",
+        "email",
+        "dateNaiss",
+        "sexe",
+        "nationalite",
+        "numTel",
+        "adresse",
+        "role",
+        "password"
+})
 public class ClientEntity {
 
     @Id
@@ -22,6 +36,7 @@ public class ClientEntity {
     private String email;
 
     @NotBlank(message = "Le mot de passe est obligatoire")
+    @JsonIgnore
     private String password;
 
     @NotBlank(message = "Le nom est obligatoire")

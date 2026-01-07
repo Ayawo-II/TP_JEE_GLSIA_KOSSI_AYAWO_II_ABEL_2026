@@ -1,7 +1,7 @@
 package com.ayawo.banque.ega.Client;
 
+import com.ayawo.banque.configuration.NotFoundException;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,7 +25,6 @@ public class ClientController {
     @PostMapping
     public ResponseEntity<ClientEntity> createClient(@Valid @RequestBody ClientEntity client){
 
-        // 1. Vérifier si email existe (avec Optional)
         ClientEntity existingClient = clientRepository.findByEmail(client.getEmail());
         if(existingClient != null){
             throw new IllegalArgumentException("Cette adresse email est déjà utilisée");
@@ -45,28 +44,39 @@ public class ClientController {
 
     @GetMapping
     public ResponseEntity<List<ClientEntity>> getAllClients() {
-        return new ResponseEntity<>(clientRepository.findAll(), HttpStatus.OK);
+        List<ClientEntity> clients = clientRepository.findAll();
+
+        for (ClientEntity client : clients) {
+            client.setPassword(null);
+        }
+
+        return new ResponseEntity<>(clients, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ClientEntity> getClientById(@PathVariable Long id){
-        Optional<ClientEntity> client = clientRepository.findById(id);
-        if(client.isPresent()){
-            return new ResponseEntity<>(client.get(), HttpStatus.OK);
+    public ResponseEntity<ClientEntity> getClientById(@PathVariable Long id) {
+        Optional<ClientEntity> clientOptional = clientRepository.findById(id);
+
+        if (clientOptional.isPresent()) {
+            ClientEntity client = clientOptional.get();
+            client.setPassword(null);
+            return new ResponseEntity<>(client, HttpStatus.OK);
         } else {
-            throw new ClientNotFoundException("Ce client n'existe pas");
+            throw new NotFoundException("Ce client n'existe pas");
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ClientEntity> updateClient(@PathVariable Long id, @RequestBody ClientEntity clientDetails){
+    public ResponseEntity<ClientEntity> updateClient(@PathVariable Long id, @Valid @RequestBody ClientEntity clientDetails){
         Optional<ClientEntity> client = clientRepository.findById(id);
 
         if(client.isPresent()){
             ClientEntity existingClient = client.get();
 
+            String hashedPassword = passwordEncoder.encode(clientDetails.getPassword());
+
             existingClient.setEmail(clientDetails.getEmail());
-            existingClient.setPassword(clientDetails.getPassword());
+            existingClient.setPassword(hashedPassword);
             existingClient.setNom(clientDetails.getNom());
             existingClient.setPrenom(clientDetails.getPrenom());
             existingClient.setDateNaiss(clientDetails.getDateNaiss());
@@ -77,9 +87,11 @@ public class ClientController {
 
             ClientEntity clientUpdated = clientRepository.save(existingClient);
 
+            clientUpdated.setPassword(null);
+
             return new ResponseEntity<>(clientUpdated, HttpStatus.OK);
         }
-        throw new ClientNotFoundException("Ce client n'existe pas");
+        throw new NotFoundException("Ce client n'existe pas");
     }
 
     @DeleteMapping("/{id}")
@@ -90,7 +102,7 @@ public class ClientController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
 
-        throw new ClientNotFoundException("Ce client n'existe pas");
+        throw new NotFoundException("Ce client n'existe pas");
 
     }
 

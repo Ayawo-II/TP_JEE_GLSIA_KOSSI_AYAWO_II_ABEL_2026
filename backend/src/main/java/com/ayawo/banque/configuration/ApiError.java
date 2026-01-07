@@ -1,8 +1,7 @@
-package com.ayawo.banque.ega.Client;
+package com.ayawo.banque.configuration;
 
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data

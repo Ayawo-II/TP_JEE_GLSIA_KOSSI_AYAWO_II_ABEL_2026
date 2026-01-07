@@ -1,4 +1,4 @@
-package com.ayawo.banque.ega.Client;
+package com.ayawo.banque.configuration;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +14,8 @@ import java.util.Map;
 @ControllerAdvice
 public class CustomExceptionHandler {
 
-    @ExceptionHandler(ClientNotFoundException.class)
-    public ResponseEntity<ApiError> handleClientNotFoundException(ClientNotFoundException e) {
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFoundException(NotFoundException e) {
         ApiError  apiError = new ApiError();
         apiError.setMessage(e.getMessage());
         apiError.setCode(HttpStatus.NOT_FOUND.value());
@@ -56,5 +56,6 @@ public class CustomExceptionHandler {
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
+
 
 }

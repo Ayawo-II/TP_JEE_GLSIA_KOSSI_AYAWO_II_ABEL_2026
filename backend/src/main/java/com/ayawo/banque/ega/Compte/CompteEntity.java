@@ -1,6 +1,7 @@
 package com.ayawo.banque.ega.Compte;
 
 import com.ayawo.banque.ega.Client.ClientEntity;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +14,13 @@ import java.time.LocalDate;
 @Data
 @Entity
 @Table(name = "comptes")
+@JsonPropertyOrder({
+        "numeroCompte",
+        "dateCreation",
+        "typeCompte",
+        "solde",
+        "client"
+})
 public class CompteEntity {
 
     @Id
