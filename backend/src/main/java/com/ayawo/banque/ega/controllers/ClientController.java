@@ -19,7 +19,7 @@ import java.util.Map;
 @RequestMapping("/client")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*")  // Permettre les requêtes depuis Angular
+@CrossOrigin(origins = "*")
 public class ClientController {
 
     private final ClientService clientService;
@@ -37,12 +37,10 @@ public class ClientController {
     public ResponseEntity<ClientResponseDTO> createClient(
             @Valid @RequestBody ClientRequestDTO requestDTO) {
 
-        log.info("Requête POST /api/clients - Création d'un client");
-
         ClientResponseDTO createdClient = clientService.createClient(requestDTO);
 
         return ResponseEntity
-                .status(HttpStatus.CREATED)  // 201
+                .status(HttpStatus.CREATED)
                 .body(createdClient);
     }
 
@@ -56,11 +54,9 @@ public class ClientController {
     @GetMapping
     public ResponseEntity<List<ClientResponseDTO>> getAllClients() {
 
-        log.info("Requête GET /api/clients - Récupération de tous les clients");
-
         List<ClientResponseDTO> clients = clientService.getAllClients();
 
-        return ResponseEntity.ok(clients);  // 200
+        return ResponseEntity.ok(clients);
     }
 
     /**
@@ -73,11 +69,9 @@ public class ClientController {
     @GetMapping("/summary")
     public ResponseEntity<List<ClientSummaryDTO>> getAllClientsSummary() {
 
-        log.info("Requête GET /api/clients/summary - Récupération des clients (résumé)");
-
         List<ClientSummaryDTO> clients = clientService.getAllClientsSummary();
 
-        return ResponseEntity.ok(clients);  // 200
+        return ResponseEntity.ok(clients);
     }
 
     /**
@@ -91,11 +85,9 @@ public class ClientController {
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponseDTO> getClientById(@PathVariable Long id) {
 
-        log.info("Requête GET /api/clients/{} - Récupération du client", id);
-
         ClientResponseDTO client = clientService.getClientById(id);
 
-        return ResponseEntity.ok(client);  // 200
+        return ResponseEntity.ok(client);
     }
 
     /**
@@ -109,11 +101,9 @@ public class ClientController {
     @GetMapping("/email/{email}")
     public ResponseEntity<ClientResponseDTO> getClientByEmail(@PathVariable String email) {
 
-        log.info("Requête GET /api/clients/email/{} - Récupération du client", email);
-
         ClientResponseDTO client = clientService.getClientByEmail(email);
 
-        return ResponseEntity.ok(client);  // 200
+        return ResponseEntity.ok(client);
     }
 
     /**
@@ -131,17 +121,15 @@ public class ClientController {
             @PathVariable Long id,
             @Valid @RequestBody ClientRequestDTO requestDTO) {
 
-        log.info("Requête PUT /api/clients/{} - Mise à jour du client", id);
-
         ClientResponseDTO updatedClient = clientService.updateClient(id, requestDTO);
 
-        return ResponseEntity.ok(updatedClient);  // 200
+        return ResponseEntity.ok(updatedClient);
     }
 
     /**
      * DELETE - Supprimer un client
      *
-     * DELETE /api/clients/{id}
+     * DELETE /clients/{id}
      *
      * @param id L'identifiant du client à supprimer
      * @return Message de confirmation avec code 200 (OK)
@@ -149,15 +137,13 @@ public class ClientController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteClient(@PathVariable Long id) {
 
-        log.info("Requête DELETE /api/clients/{} - Suppression du client", id);
-
         clientService.deleteClient(id);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Client supprimé avec succès");
         response.put("id", id.toString());
 
-        return ResponseEntity.ok(response);  // 200
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -169,8 +155,6 @@ public class ClientController {
      */
     @GetMapping("/count")
     public ResponseEntity<Map<String, Long>> countClients() {
-
-        log.info("Requête GET /api/clients/count - Comptage des clients");
 
         long count = clientService.countClients();
 
@@ -191,8 +175,6 @@ public class ClientController {
     @GetMapping("/check-email")
     public ResponseEntity<Map<String, Boolean>> checkEmailAvailability(
             @RequestParam String email) {
-
-        log.info("Requête GET /api/clients/check-email?email={}", email);
 
         boolean available = clientService.isEmailAvailable(email);
 

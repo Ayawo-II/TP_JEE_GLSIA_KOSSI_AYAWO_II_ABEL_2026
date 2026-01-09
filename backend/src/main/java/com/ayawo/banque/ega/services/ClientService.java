@@ -17,9 +17,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor  // Lombok génère le constructeur avec les champs final
-@Slf4j  // Lombok pour les logs
-@Transactional  // Toutes les méthodes sont transactionnelles par défaut
+@RequiredArgsConstructor
+@Slf4j
+@Transactional
 public class ClientService {
 
     private final ClientRepository clientRepository;
@@ -33,11 +33,8 @@ public class ClientService {
      * @throws EmailAlreadyExistsException si l'email existe déjà
      */
     public ClientResponseDTO createClient(ClientRequestDTO requestDTO) {
-        log.info("Création d'un nouveau client avec l'email : {}", requestDTO.getEmail());
 
-        // 1. Vérifier que l'email n'existe pas déjà
         if (clientRepository.existsByEmail(requestDTO.getEmail())) {
-            log.error("Tentative de création avec un email existant : {}", requestDTO.getEmail());
             throw new EmailAlreadyExistsException(requestDTO.getEmail());
         }
 
@@ -47,10 +44,9 @@ public class ClientService {
         // 3. Sauvegarder en base de données
         ClientEntity savedClient = clientRepository.save(clientEntity);
 
-        log.info("Client créé avec succès. ID : {}", savedClient.getId());
-
         // 4. Convertir Entity → DTO et retourner
         return clientMapper.toResponseDTO(savedClient);
+
     }
 
     /**
@@ -58,9 +54,8 @@ public class ClientService {
      *
      * @return Liste de tous les clients
      */
-    @Transactional(readOnly = true)  // Optimisation pour les lectures seules
+    @Transactional(readOnly = true)
     public List<ClientResponseDTO> getAllClients() {
-        log.info("Récupération de tous les clients");
 
         return clientRepository.findAll()
                 .stream()
@@ -92,11 +87,9 @@ public class ClientService {
      */
     @Transactional(readOnly = true)
     public ClientResponseDTO getClientById(Long id) {
-        log.info("Recherche du client avec l'ID : {}", id);
 
         ClientEntity client = clientRepository.findById(id)
                 .orElseThrow(() -> {
-                    log.error("Client non trouvé avec l'ID : {}", id);
                     return new ClientNotFoundException(id);
                 });
 
@@ -112,11 +105,9 @@ public class ClientService {
      */
     @Transactional(readOnly = true)
     public ClientResponseDTO getClientByEmail(String email) {
-        log.info("Recherche du client avec l'email : {}", email);
 
         ClientEntity client = clientRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("Client non trouvé avec l'email : {}", email);
                     return new ClientNotFoundException("Client non trouvé avec l'email : " + email);
                 });
 
@@ -133,19 +124,16 @@ public class ClientService {
      * @throws EmailAlreadyExistsException si le nouvel email existe déjà
      */
     public ClientResponseDTO updateClient(Long id, ClientRequestDTO requestDTO) {
-        log.info("Mise à jour du client avec l'ID : {}", id);
 
         // 1. Vérifier que le client existe
         ClientEntity existingClient = clientRepository.findById(id)
                 .orElseThrow(() -> {
-                    log.error("Client non trouvé avec l'ID : {}", id);
                     return new ClientNotFoundException(id);
                 });
 
         // 2. Vérifier que le nouvel email n'est pas déjà utilisé par un autre client
         if (!existingClient.getEmail().equals(requestDTO.getEmail()) &&
                 clientRepository.existsByEmail(requestDTO.getEmail())) {
-            log.error("Email déjà utilisé : {}", requestDTO.getEmail());
             throw new EmailAlreadyExistsException(requestDTO.getEmail());
         }
 
@@ -154,8 +142,6 @@ public class ClientService {
 
         // 4. Sauvegarder les modifications
         ClientEntity updatedClient = clientRepository.save(existingClient);
-
-        log.info("Client mis à jour avec succès. ID : {}", id);
 
         // 5. Retourner le client mis à jour
         return clientMapper.toResponseDTO(updatedClient);
@@ -168,7 +154,6 @@ public class ClientService {
      * @throws ClientNotFoundException si le client n'existe pas
      */
     public void deleteClient(Long id) {
-        log.info("Suppression du client avec l'ID : {}", id);
 
         // 1. Vérifier que le client existe
         if (!clientRepository.existsById(id)) {
@@ -215,4 +200,5 @@ public class ClientService {
     public boolean isEmailAvailable(String email) {
         return !clientRepository.existsByEmail(email);
     }
+
 }

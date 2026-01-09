@@ -23,4 +23,5 @@ public class ClientResponseDTO {
     private String email;
     private String nationalite;
     private int nombreComptes;  // Nombre de comptes du client
+
 }

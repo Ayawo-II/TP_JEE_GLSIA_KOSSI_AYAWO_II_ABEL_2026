@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,21 +61,6 @@ public class TransactionController {
     }
 
     /**
-     * 3. READ BY ID - Récupérer une transaction par ID
-     *
-     * GET /api/transactions/{id}
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<TransactionResponseDTO> getTransactionById(@PathVariable Long id) {
-
-        log.info("Requête GET /api/transactions/{} - Récupération de la transaction", id);
-
-        TransactionResponseDTO transaction = transactionService.getTransactionById(id);
-
-        return ResponseEntity.ok(transaction);
-    }
-
-    /**
      * 4. READ BY COMPTE - Récupérer les transactions d'un compte
      *
      * GET /api/transactions/compte/{numeroCompte}
@@ -82,8 +68,6 @@ public class TransactionController {
     @GetMapping("/compte/{numeroCompte}")
     public ResponseEntity<List<TransactionResponseDTO>> getTransactionsByNumeroCompte(
             @PathVariable String numeroCompte) {
-
-        log.info("Requête GET /api/transactions/compte/{} - Récupération des transactions", numeroCompte);
 
         List<TransactionResponseDTO> transactions = transactionService.getTransactionsByNumeroCompte(numeroCompte);
 
@@ -101,9 +85,6 @@ public class TransactionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFin) {
 
-        log.info("Requête GET /api/transactions/compte/{}/periode - Du {} au {}",
-                numeroCompte, dateDebut, dateFin);
-
         List<TransactionResponseDTO> transactions = transactionService
                 .getTransactionsByNumeroCompteAndPeriode(numeroCompte, dateDebut, dateFin);
 
@@ -118,8 +99,6 @@ public class TransactionController {
     @GetMapping("/client/{clientId}")
     public ResponseEntity<List<TransactionResponseDTO>> getTransactionsByClientId(
             @PathVariable Long clientId) {
-
-        log.info("Requête GET /api/transactions/client/{} - Récupération des transactions du client", clientId);
 
         List<TransactionResponseDTO> transactions = transactionService.getTransactionsByClientId(clientId);
 
@@ -137,9 +116,6 @@ public class TransactionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFin) {
 
-        log.info("Requête GET /api/transactions/client/{}/periode - Du {} au {}",
-                clientId, dateDebut, dateFin);
-
         List<TransactionResponseDTO> transactions = transactionService
                 .getTransactionsByClientIdAndPeriode(clientId, dateDebut, dateFin);
 
@@ -153,8 +129,6 @@ public class TransactionController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteTransaction(@PathVariable Long id) {
-
-        log.info("Requête DELETE /api/transactions/{} - Suppression de la transaction", id);
 
         transactionService.deleteTransaction(id);
 

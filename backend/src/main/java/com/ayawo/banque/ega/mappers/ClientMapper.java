@@ -28,6 +28,7 @@ public class ClientMapper {
                 .email(dto.getEmail())
                 .nationalite(dto.getNationalite())
                 .build();
+
     }
 
     /**
@@ -47,6 +48,7 @@ public class ClientMapper {
         entity.setTelephone(dto.getTelephone());
         entity.setEmail(dto.getEmail());
         entity.setNationalite(dto.getNationalite());
+
     }
 
     /**
@@ -71,6 +73,7 @@ public class ClientMapper {
                 .nationalite(entity.getNationalite())
                 .nombreComptes(entity.getComptes() != null ? entity.getComptes().size() : 0)
                 .build();
+
     }
 
     /**
@@ -89,5 +92,6 @@ public class ClientMapper {
                 .telephone(entity.getTelephone())
                 .nombreComptes(entity.getComptes() != null ? entity.getComptes().size() : 0)
                 .build();
+
     }
 }

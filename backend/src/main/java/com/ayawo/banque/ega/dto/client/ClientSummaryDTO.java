@@ -14,4 +14,5 @@ public class ClientSummaryDTO {
     private String email;
     private String telephone;
     private int nombreComptes;
+
 }

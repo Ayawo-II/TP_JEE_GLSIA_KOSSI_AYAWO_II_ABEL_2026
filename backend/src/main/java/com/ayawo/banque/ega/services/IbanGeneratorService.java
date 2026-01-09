@@ -30,15 +30,12 @@ public class IbanGeneratorService {
             // Générer la clé RIB (2 chiffres)
             String ribKey = generateRandomDigits(2);
 
-            // Construire l'IBAN : FR76 + BankCode(5) + Branch(5) + Account(11) + Key(2)
+            // Construire l'IBAN : TG76 + BankCode(5) + Branch(5) + Account(11) + Key(2)
             String iban = COUNTRY_CODE + CHECK_DIGITS + BANK_CODE + branchCode + accountNumber + ribKey;
-
-            log.info("IBAN généré : {}", iban);
 
             return iban;
 
         } catch (Exception e) {
-            log.error("Erreur lors de la génération de l'IBAN : {}", e.getMessage(), e);
             throw new RuntimeException("Impossible de générer un IBAN", e);
         }
     }
@@ -65,7 +62,7 @@ public class IbanGeneratorService {
             return false;
         }
 
-        // Vérification simple : commence par FR et a 27 caractères
+        // Vérification simple : commence par TG et a 27 caractères
         return iban.startsWith("TG") && iban.length() == 27;
     }
 }

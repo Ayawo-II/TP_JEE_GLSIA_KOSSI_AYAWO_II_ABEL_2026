@@ -65,4 +65,12 @@ public class ClientEntity {
         compte.setProprietaire(this);
     }
 
+    public UserEntity getUser() {
+        return user;
+    }
+
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
 }

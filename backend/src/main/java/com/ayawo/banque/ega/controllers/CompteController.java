@@ -27,14 +27,12 @@ public class CompteController {
     /**
      * 1. CREATE - Créer un nouveau compte
      *
-     * POST /api/comptes
+     * POST /compte
      * Body: { "typeCompte": "COURANT", "clientId": 1 }
      */
     @PostMapping
     public ResponseEntity<CompteResponseDTO> createCompte(
             @Valid @RequestBody CompteRequestDTO requestDTO) {
-
-        log.info("Requête POST /api/comptes - Création d'un compte");
 
         CompteResponseDTO createdCompte = compteService.createCompte(requestDTO);
 
@@ -46,12 +44,10 @@ public class CompteController {
     /**
      * 2. READ ALL - Récupérer tous les comptes
      *
-     * GET /api/comptes
+     * GET /compte
      */
     @GetMapping
     public ResponseEntity<List<CompteResponseDTO>> getAllComptes() {
-
-        log.info("Requête GET /api/comptes - Récupération de tous les comptes");
 
         List<CompteResponseDTO> comptes = compteService.getAllComptes();
 
@@ -67,8 +63,6 @@ public class CompteController {
     public ResponseEntity<CompteResponseDTO> getCompteByNumero(
             @PathVariable String numeroCompte) {
 
-        log.info("Requête GET /api/comptes/{} - Récupération du compte", numeroCompte);
-
         CompteResponseDTO compte = compteService.getCompteByNumero(numeroCompte);
 
         return ResponseEntity.ok(compte);
@@ -82,8 +76,6 @@ public class CompteController {
     @GetMapping("/client/{clientId}")
     public ResponseEntity<List<CompteResponseDTO>> getComptesByClientId(
             @PathVariable Long clientId) {
-
-        log.info("Requête GET /api/comptes/client/{} - Récupération des comptes du client", clientId);
 
         List<CompteResponseDTO> comptes = compteService.getComptesByClientId(clientId);
 
