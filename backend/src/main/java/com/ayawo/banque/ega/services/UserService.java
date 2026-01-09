@@ -16,6 +16,7 @@ import com.ayawo.banque.ega.repositories.ClientRepository;
 import com.ayawo.banque.ega.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 1. CREATE - Créer un utilisateur
@@ -59,7 +61,7 @@ public class UserService {
         // Créer l'utilisateur
         UserEntity user = UserEntity.builder()
                 .username(requestDTO.getUsername())
-                .password(requestDTO.getPassword())  // En clair pour l'instant (TODO: BCrypt)
+                .password(passwordEncoder.encode(requestDTO.getPassword()))
                 .role(requestDTO.getRole())
                 .active(true)
                 .build();

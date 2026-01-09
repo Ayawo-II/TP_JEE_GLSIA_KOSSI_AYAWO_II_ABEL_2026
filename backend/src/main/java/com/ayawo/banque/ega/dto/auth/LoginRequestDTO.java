@@ -1,0 +1,18 @@
+package com.ayawo.banque.ega.dto.auth;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class LoginRequestDTO {
+
+    @NotBlank(message = "Le username est obligatoire")
+    private String username;
+
+    @NotBlank(message = "Le mot de passe est obligatoire")
+    private String password;
+}
