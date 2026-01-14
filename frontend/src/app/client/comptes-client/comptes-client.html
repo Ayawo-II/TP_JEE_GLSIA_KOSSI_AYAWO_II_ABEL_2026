@@ -1,36 +1,105 @@
 <section class="accounts-section">
+  
+  <!-- En-tête -->
   <div class="section-header">
     <h3>Liste des Comptes</h3>
-
-    <button class="btn add" routerLink="">Ajouter un compte</button>
     
     <div class="header-actions">
-      <input type="text" placeholder="Rechercher un compte" class="search-bar">
+      <!-- Barre de recherche -->
+      <input 
+        type="text" 
+        [(ngModel)]="recherche"
+        placeholder="Rechercher un compte..." 
+        class="search-bar">
+      
+      <!-- Bouton Ajouter -->
+      <button class="btn add" routerLink="/client/comptes/ajouter">
+        Ajouter un compte
+      </button>
     </div>
   </div>
 
-  <table class="accounts-table">
-    <thead>
-      <tr>
-        <th>Numéro</th>
-        <th>Type</th>
-        <th>Solde</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+  <!-- Chargement -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Chargement de vos comptes...</p>
+  </div>
 
-    <tbody>
-        <tr *ngFor="let compte of comptes">
-          <td>{{ compte.numeroCompte }}</td>
-          <td>{{ compte.typeCompte }}</td>
-          <td>{{ compte.solde }} €</td>
+  <!-- Erreur -->
+  <div *ngIf="error && !loading" class="error-message">
+    <div class="error-icon">⚠️</div>
+    <p>{{ error }}</p>
+    <button (click)="rafraichir()" class="btn-retry">Réessayer</button>
+  </div>
+
+  <!-- Tableau des comptes -->
+  <div *ngIf="!loading && !error">
+    
+    <!-- Résumé -->
+    <div *ngIf="comptes.length > 0" class="summary">
+      <p>Total: <strong>{{ comptes.length }}</strong> compte(s) 
+        <span *ngIf="recherche">({{ comptesFiltres.length }} résultat(s) pour "{{ recherche }}")</span>
+      </p>
+    </div>
+    
+    <!-- Table -->
+    <table *ngIf="comptesFiltres.length > 0" class="accounts-table">
+      <thead>
+        <tr>
+          <th>Numéro de compte</th>
+          <th>Type</th>
+          <th>Solde</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      
+      <tbody>
+        <tr *ngFor="let compte of comptesFiltres">
           <td>
-            <button>Dépôt</button>
-            <button>Retrait</button>
-            <button>Virement</button>
+            <div class="account-number">{{ compte.numeroCompte || compte.numero || 'N/A' }}</div>
+            <small *ngIf="compte.dateCreation" class="account-date">
+              Créé le {{ compte.dateCreation | date:'dd/MM/yyyy' }}
+            </small>
+          </td>
+          
+          <td>
+            <span [class]="getTypeBadgeClass(compte.typeCompte || compte.type)">
+              {{ compte.typeCompte || compte.type || 'N/A' }}
+            </span>
+          </td>
+          
+          <td [class]="getSoldeClass(compte.solde || 0)">
+            {{ (compte.solde || 0) | currency:'EUR':'symbol':'1.2-2' }}
+          </td>
+          
+          <td class="actions-cell">
+            <button (click)="faireDepot(compte)" class="btn-action btn-depot">
+              Dépôt
+            </button>
+            <button (click)="faireRetrait(compte)" class="btn-action btn-retrait">
+              Retrait
+            </button>
+            <button (click)="faireVirement(compte)" class="btn-action btn-virement">
+              Virement
+            </button>
           </td>
         </tr>
       </tbody>
+    </table>
 
-  </table>
+    <!-- Aucun résultat -->
+    <div *ngIf="comptesFiltres.length === 0 && comptes.length > 0" class="no-results">
+      <p>Aucun compte ne correspond à votre recherche "{{ recherche }}"</p>
+    </div>
+
+    <!-- Aucun compte -->
+    <div *ngIf="comptes.length === 0" class="no-accounts">
+      <div class="no-accounts-icon">🏦</div>
+      <p>Vous n'avez aucun compte bancaire</p>
+      <button routerLink="/comptes/ajouter" class="btn-add-first">
+        Créer votre premier compte
+      </button>
+    </div>
+  </div>
+
 </section>

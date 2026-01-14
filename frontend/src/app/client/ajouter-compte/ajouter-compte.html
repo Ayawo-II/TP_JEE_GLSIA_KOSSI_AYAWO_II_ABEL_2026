@@ -1,0 +1,108 @@
+<div class="add-account-container">
+  
+  <!-- En-tête -->
+  <div class="header">
+    <h1>
+      <a routerLink="/client/comptes" class="back-link">←</a>
+      Créer un nouveau compte
+    </h1>
+    <p *ngIf="user" class="client-info">Pour : {{ user.clientNom }}</p>
+  </div>
+
+  <!-- Messages -->
+  <div *ngIf="message" [class]="isError ? 'message error' : 'message success'">
+    {{ message }}
+  </div>
+
+  <!-- Formulaire -->
+  <form (ngSubmit)="preparerCreation()" #compteForm="ngForm" class="account-form">
+    
+    <!-- Type de compte -->
+    <div class="form-group">
+      <label for="typeCompte">Type de compte *</label>
+      <div class="type-options">
+        <label *ngFor="let type of typesCompte" class="type-option">
+          <input 
+            type="radio" 
+            name="typeCompte" 
+            [(ngModel)]="compteData.typeCompte" 
+            [value]="type"
+            required>
+          <div class="option-card" [class.selected]="compteData.typeCompte === type">
+            <div class="option-icon">{{ type === 'COURANT' ? '💳' : '💰' }}</div>
+            <div class="option-text">
+              <h4>{{ type === 'COURANT' ? 'Compte Courant' : 'Compte Épargne' }}</h4>
+              <p>{{ type === 'COURANT' ? 'Pour vos opérations quotidiennes' : 'Pour épargner et faire des économies' }}</p>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button 
+        type="button" 
+        class="btn cancel" 
+        routerLink="/client/comptes">
+        Annuler
+      </button>
+      <button type="submit" class="btn submit">
+        <span *ngIf="!loading">Créer le compte</span>
+        <span *ngIf="loading">Création en cours...</span>
+      </button>
+    </div>
+
+  </form>
+
+  <!-- BOÎTE DE DIALOGUE DE CONFIRMATION -->
+  <div *ngIf="showConfirmation" class="confirmation-overlay">
+    <div class="confirmation-dialog">
+      
+      <!-- En-tête -->
+      <div class="confirmation-header">
+        <h3>Confirmer la création</h3>
+        <button type="button" class="close-btn" (click)="annulerCreation()">×</button>
+      </div>
+      
+      <!-- Contenu -->
+      <div class="confirmation-content">
+        <div class="confirmation-icon">⚠️</div>
+        <p>Êtes-vous sûr de vouloir créer un compte <strong>{{ compteData.typeCompte === 'COURANT' ? 'Courant' : 'Épargne' }}</strong> ?</p>
+        
+        <div class="confirmation-details">
+          <div class="detail-item">
+            <span class="detail-label">Type :</span>
+            <span class="detail-value">{{ compteData.typeCompte === 'COURANT' ? 'Compte Courant' : 'Compte Épargne' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Client :</span>
+            <span class="detail-value">{{ user?.clientNom }}</span>
+          </div>
+        </div>
+        
+        <p class="confirmation-warning">
+          Cette action créera un nouveau compte bancaire associé à votre profil.
+        </p>
+      </div>
+      
+      <!-- Actions -->
+      <div class="confirmation-actions">
+        <button 
+          type="button" 
+          class="btn confirmation-cancel" 
+          (click)="annulerCreation()">
+          Annuler
+        </button>
+        <button 
+          type="button" 
+          class="btn confirmation-confirm" 
+          (click)="confirmerCreation()">
+          Confirmer
+        </button>
+      </div>
+      
+    </div>
+  </div>
+
+</div>

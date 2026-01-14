@@ -10,6 +10,7 @@ import { ClientLayout } from './client/layout/client-layout/client-layout';
 import { DashboardClient } from './client/dashboard-client/dashboard-client';
 import { ComptesClient } from './client/comptes-client/comptes-client';
 import { TransactionsClient } from './client/transactions-client/transactions-client';
+import { AjouterCompte } from './client/ajouter-compte/ajouter-compte';
 
 export const routes: Routes = [
     
@@ -32,6 +33,7 @@ export const routes: Routes = [
             { path: 'dashboard', component: DashboardClient },
             { path: 'comptes', component: ComptesClient,},
             { path: 'transactions', component: TransactionsClient },
+            { path: 'comptes/ajouter', component: AjouterCompte,},
         ]
     },
 

@@ -1,5 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 
 const BASE_URL = 'http://localhost:8080';
 
@@ -24,5 +25,14 @@ export class ClientService {
     return this.http.get(BASE_URL + `/client/${id}`, 
       { headers: this.getHeaders() });
   }
+
+  ajouterCompte(compteData: any): Observable<any> {
+  const headers = new HttpHeaders({
+    "Authorization": "Bearer " + localStorage.getItem("token"),
+    "Content-Type": "application/json"
+  });
+  
+  return this.http.post(`${BASE_URL}/compte`, compteData, { headers });
+}
 
 }

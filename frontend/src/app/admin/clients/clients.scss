@@ -1,80 +1,153 @@
-/* Section principale */
-.clients-section {
+/* ===== SECTIONS ===== */
+.clients-section,
+.accounts-section {
   background: white;
-  padding: 20px;
+  padding: 24px;
   border-radius: 10px;
   margin: 20px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-/* En-tête avec titre et recherche */
+/* ===== HEADERS ===== */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.btn.add {
-  background: #4CAF50;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn.add:hover {
-  background: #7fa045;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e8e8e8;
 }
 
 .section-header h3 {
   margin: 0;
-  color: #333;
-  font-size: 18px;
+  font-size: 20px;
+  color: #2c3e50;
+  font-weight: 600;
 }
 
-.search-bar {
-  padding: 8px 12px;
-  border: 1px solid #ccc;
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ===== BOUTON AJOUTER ===== */
+.btn.add {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 20px;
   border-radius: 6px;
-  width: 200px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-/* Tableau */
-.clients-table {
+.btn.add:hover {
+  background: #219653;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(39, 174, 96, 0.2);
+}
+
+/* ===== SEARCH BAR ===== */
+.search-bar {
+  padding: 10px 16px;
+  border: 1px solid #d1d9e6;
+  border-radius: 6px;
+  width: 220px;
+  font-size: 14px;
+  color: #333;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.15);
+  background: white;
+}
+
+/* ===== TABLES ===== */
+.clients-table,
+.accounts-table {
   width: 100%;
   border-collapse: collapse;
+  border-radius: 6px;
 }
 
-.clients-table th {
+.clients-table th,
+.accounts-table th {
   text-align: left;
-  padding: 12px;
-  background: #f5f5f5;
-  border-bottom: 2px solid #ddd;
-  color: #555;
+  padding: 14px 16px;
+  border-bottom: 2px solid #27ae60;
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f8fafc;
 }
 
-.clients-table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
+.clients-table td,
+.accounts-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #444;
+  font-size: 14px;
 }
 
-/* Bouton Supprimer */
-.btn.delete {
-  background: #ff4444;
-  color: white;
+/* ===== TABLE ROWS ===== */
+.clients-table tr:hover,
+.accounts-table tr:hover {
+  background: #f5faff;
+  transition: background 0.2s ease;
+}
+
+/* ===== STYLE SPÉCIFIQUE CLIENTS ===== */
+
+/* Nom et prénom */
+.clients-table td:first-child {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Email */
+.clients-table td:nth-child(2) {
+  color: #3498db;
+  font-family: 'Monospace', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+/* Nombre de comptes */
+.clients-table td:nth-child(3) {
+  text-align: center;
+  font-weight: 600;
+  color: #e67e22;
+  background: #fef9f3;
   padding: 6px 12px;
-  border: none;
   border-radius: 4px;
-  cursor: pointer;
+  display: inline-block;
+  min-width: 40px;
 }
 
-.btn.delete:hover {
-  background: #dd3333;
+/* ===== ALTERNATING ROWS ===== */
+.clients-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.clients-table tbody tr:nth-child(even):hover {
+  background: #f5faff;
+}
+
+/* ===== EMPTY STATE ===== */
+.clients-table tbody:empty::after {
+  content: "Aucun client trouvé";
+  display: block;
+  text-align: center;
+  padding: 40px;
+  color: #95a5a6;
+  font-style: italic;
 }
