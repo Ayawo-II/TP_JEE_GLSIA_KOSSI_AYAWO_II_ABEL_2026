@@ -28,7 +28,7 @@ export class AjouterCompte implements OnInit {
   loading = false;
   message = '';
   isError = false;
-  showConfirmation = false; // Nouveau: boîte de dialogue
+  showConfirmation = false; 
   typesCompte = ['COURANT', 'EPARGNE'];
   user: any = null;
 

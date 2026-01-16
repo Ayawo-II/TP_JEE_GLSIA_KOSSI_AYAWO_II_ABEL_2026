@@ -4,6 +4,7 @@ import { DashboardService } from '../../services/dashboard-service';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { TransactionService } from '../../services/transaction-service';
 
 @Component({
   selector: 'app-comptes-client',
@@ -15,12 +16,31 @@ export class ComptesClient implements OnInit {
   
   private loginService = inject(LoginService);
   private dashboardService = inject(DashboardService);
+  private transactionService = inject(TransactionService);
   cdr = inject(ChangeDetectorRef);
   
+  // Données principales
   comptes: any[] = [];
   loading = true;
   error = '';
   recherche = '';
+  
+  // Dépôt
+  compteSelectionne: any = null;
+  montantDepot: number = 0;
+  showSaisieDepot = false;
+  showConfirmationDepot = false;
+  
+  // Retrait
+  montantRetrait: number = 0;
+  showSaisieRetrait = false;
+  showConfirmationRetrait = false;
+  
+  // Virement
+  montantVirement: number = 0;
+  compteDestination: string = '';
+  showSaisieVirement = false;
+  showConfirmationVirement = false;
 
   ngOnInit(): void {
     this.chargerComptes();
@@ -52,61 +72,165 @@ export class ComptesClient implements OnInit {
           this.comptes = comptes;
           this.loading = false;
           this.cdr.detectChanges();
-          console.log('✅ Comptes chargés:', this.comptes);
         },
         error: (err) => {
           this.error = err.error?.message || 'Erreur lors du chargement des comptes';
           this.loading = false;
           this.cdr.detectChanges();
-          console.error('❌ Erreur:', err);
         }
       });
     }, 1000);
   }
 
-  // Filtre les comptes selon la recherche
+  // Filtre
   get comptesFiltres(): any[] {
-    if (!this.recherche.trim()) {
-      return this.comptes;
-    }
-    
+    if (!this.recherche.trim()) return this.comptes;
     const rechercheLower = this.recherche.toLowerCase();
     return this.comptes.filter(compte =>
       (compte.numeroCompte?.toLowerCase().includes(rechercheLower)) ||
-      (compte.typeCompte?.toLowerCase().includes(rechercheLower)) ||
-      (compte.solde?.toString().includes(rechercheLower))
+      (compte.typeCompte?.toLowerCase().includes(rechercheLower))
     );
   }
 
-  // Formate le type de compte
   getTypeBadgeClass(type: string): string {
     return type === 'COURANT' ? 'type-badge courant-badge' : 'type-badge epargne-badge';
   }
 
-  // Formate le solde
   getSoldeClass(solde: number): string {
     return solde >= 0 ? 'solde-positive' : 'solde-negative';
   }
 
-  // Action dépôt
-  faireDepot(compte: any): void {
-    console.log('Dépôt sur le compte:', compte.numeroCompte);
-    // Implémente la logique de dépôt
+  // === DÉPÔT ===
+  preparerDepot(compte: any) {
+    this.compteSelectionne = compte;
+    this.montantDepot = 0;
+    this.showSaisieDepot = true;
   }
 
-  // Action retrait
-  faireRetrait(compte: any): void {
-    console.log('Retrait sur le compte:', compte.numeroCompte);
-    // Implémente la logique de retrait
+  confirmerMontantDepot() {
+    if (this.montantDepot <= 0) {
+      alert("Montant invalide");
+      return;
+    }
+    this.showSaisieDepot = false;
+    this.showConfirmationDepot = true;
   }
 
-  // Action virement
-  faireVirement(compte: any): void {
-    console.log('Virement depuis le compte:', compte.numeroCompte);
-    // Implémente la logique de virement
+  validerDepot() {
+    const depotData = {
+      type: "DEPOT",
+      montant: this.montantDepot,
+      numeroCompteSource: this.compteSelectionne.numeroCompte
+    };
+    
+    this.transactionService.effectuerDepot(depotData).subscribe({
+      next: () => {
+        this.showConfirmationDepot = false;
+        this.compteSelectionne = null;
+        this.chargerComptes();
+      },
+      error: (error) => {
+        console.error('Erreur dépôt', error);
+        this.showConfirmationDepot = false;
+      }
+    });
   }
 
-  // Rafraîchir les comptes
+  annulerDepot() {
+    this.showSaisieDepot = false;
+    this.showConfirmationDepot = false;
+    this.compteSelectionne = null;
+  }
+
+  // === RETRAIT ===
+  preparerRetrait(compte: any) {
+    this.compteSelectionne = compte;
+    this.montantRetrait = 0;
+    this.showSaisieRetrait = true;
+  }
+
+  confirmerMontantRetrait() {
+    if (this.montantRetrait <= 0) {
+      alert("Montant invalide");
+      return;
+    }
+    this.showSaisieRetrait = false;
+    this.showConfirmationRetrait = true;
+  }
+
+  validerRetrait() {
+    const retraitData = {
+      type: "RETRAIT",
+      montant: this.montantRetrait,
+      numeroCompteSource: this.compteSelectionne.numeroCompte
+    };
+    
+    this.transactionService.effectuerRetrait(retraitData).subscribe({
+      next: () => {
+        this.showConfirmationRetrait = false;
+        this.chargerComptes();
+      },
+      error: (error) => {
+        console.error('Erreur retrait', error);
+        this.showConfirmationRetrait = false;
+      }
+    });
+  }
+
+  annulerRetrait() {
+    this.showSaisieRetrait = false;
+    this.showConfirmationRetrait = false;
+    this.compteSelectionne = null;
+  }
+
+  // === VIREMENT ===
+  preparerVirement(compte: any) {
+    this.compteSelectionne = compte;
+    this.montantVirement = 0;
+    this.compteDestination = '';
+    this.showSaisieVirement = true;
+  }
+
+  confirmerVirement() {
+    if (this.montantVirement <= 0) {
+      alert("Montant invalide");
+      return;
+    }
+    if (!this.compteDestination) {
+      alert("Compte destinataire requis");
+      return;
+    }
+    this.showSaisieVirement = false;
+    this.showConfirmationVirement = true;
+  }
+
+  validerVirement() {
+    const virementData = {
+      type: "VIREMENT",
+      montant: this.montantVirement,
+      numeroCompteSource: this.compteSelectionne.numeroCompte,
+      numeroCompteDestination: this.compteDestination
+    };
+    
+    this.transactionService.effectuerVirement(virementData).subscribe({
+      next: () => {
+        this.showConfirmationVirement = false;
+        this.chargerComptes();
+      },
+      error: (error) => {
+        console.error('Erreur virement', error);
+        this.showConfirmationVirement = false;
+      }
+    });
+  }
+
+  annulerVirement() {
+    this.showSaisieVirement = false;
+    this.showConfirmationVirement = false;
+    this.compteSelectionne = null;
+  }
+
+  // === UTILITAIRES ===
   rafraichir(): void {
     this.chargerComptes();
   }

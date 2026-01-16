@@ -27,12 +27,12 @@ export class ClientService {
   }
 
   ajouterCompte(compteData: any): Observable<any> {
-  const headers = new HttpHeaders({
-    "Authorization": "Bearer " + localStorage.getItem("token"),
-    "Content-Type": "application/json"
-  });
-  
-  return this.http.post(`${BASE_URL}/compte`, compteData, { headers });
-}
+    const headers = new HttpHeaders({
+      "Authorization": "Bearer " + localStorage.getItem("token"),
+      "Content-Type": "application/json"
+    });
+    
+    return this.http.post(`${BASE_URL}/compte`, compteData, { headers });
+  }
 
 }

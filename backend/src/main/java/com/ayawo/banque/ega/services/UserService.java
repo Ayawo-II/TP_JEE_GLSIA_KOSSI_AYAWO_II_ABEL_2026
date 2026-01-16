@@ -39,43 +39,41 @@ public class UserService {
      * 1. CREATE - Créer un utilisateur
      */
     public UserResponseDTO createUser(UserRequestDTO requestDTO) {
-        log.info("Création d'un nouvel utilisateur : {}", requestDTO.getUsername());
 
-        // Vérifier que le username n'existe pas déjà
+        // 1. Vérifier que le username (email) n'existe pas déjà
         if (userRepository.existsByUsername(requestDTO.getUsername())) {
             log.error("Username déjà existant : {}", requestDTO.getUsername());
             throw new UsernameAlreadyExistsException(requestDTO.getUsername());
         }
 
-        // Si c'est un CLIENT, vérifier que le client existe
-        ClientEntity client = null;
-        if (requestDTO.getRole() == Role.CLIENT) {
-            if (requestDTO.getClientId() == null) {
-                throw new IllegalArgumentException("Le clientId est obligatoire pour un utilisateur CLIENT");
-            }
+        // 2. Trouver le client par son email (username = email)
+        ClientEntity client = clientRepository.findByEmail(requestDTO.getUsername())
+                .orElseThrow(() -> new ClientNotFoundException(
+                        "Aucun client trouvé avec l'email: " + requestDTO.getUsername()
+                ));
 
-            client = clientRepository.findById(requestDTO.getClientId())
-                    .orElseThrow(() -> new ClientNotFoundException(requestDTO.getClientId()));
+        // 3. Vérifier que le client n'a pas déjà un compte utilisateur
+        if (client.getUser() != null) {
+            throw new IllegalArgumentException(
+                    "Le client avec l'email " + requestDTO.getUsername() + " a déjà un compte utilisateur"
+            );
         }
 
-        // Créer l'utilisateur
+        // 4. Créer l'utilisateur
         UserEntity user = UserEntity.builder()
                 .username(requestDTO.getUsername())
                 .password(passwordEncoder.encode(requestDTO.getPassword()))
-                .role(requestDTO.getRole())
+                .role(requestDTO.getRole() != null ? requestDTO.getRole() : Role.CLIENT) // Par défaut CLIENT
                 .active(true)
                 .build();
 
-        // Sauvegarder d'abord l'utilisateur
         UserEntity savedUser = userRepository.save(user);
 
-        // Ensuite lier le client si nécessaire
-        if (client != null) {
-            client.setUser(savedUser);
-            clientRepository.save(client);
-        }
+        // 5. Lier le client à l'utilisateur
+        client.setUser(savedUser);
+        clientRepository.save(client);
 
-        log.info("Utilisateur créé avec succès. ID : {}", savedUser.getId());
+        log.info("Compte utilisateur créé avec succès pour le client ID : {}", client.getId());
 
         return userMapper.toResponseDTO(savedUser);
     }

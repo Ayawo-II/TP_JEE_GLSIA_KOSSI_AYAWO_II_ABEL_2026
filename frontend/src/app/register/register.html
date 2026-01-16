@@ -1,23 +1,41 @@
 <div id="container">
-  <form>
+  <form [formGroup]="registerFormGroup" (ngSubmit)="onSubmit()">
     <h3>Inscrivez-vous</h3>
     
     <mat-form-field>
       <mat-label>Adresse email</mat-label>
-      <input matInput type="email">
+      <input 
+      matInput 
+      type="email"
+      formControlName="username"
+      >
     </mat-form-field>
     
     <mat-form-field>
       <mat-label>Mot de passe</mat-label>
-      <input matInput type="password">
+      <input 
+      matInput 
+      type="password"
+      formControlName="password"
+      >
     </mat-form-field>
 
     <mat-form-field>
       <mat-label>Confirmation de mot de passe</mat-label>
-      <input matInput type="password">
+      <input 
+      matInput
+      type="password"
+      formControlName="confirmPassword"
+      >
     </mat-form-field>
     
-    <button mat-flat-button type="submit">S'inscrire</button>
+    <button 
+    mat-flat-button
+    type="submit"
+    [disabled]="registerFormGroup.invalid || loading">
+      <span *ngIf="!loading">S'inscrire</span>
+      <span *ngIf="loading">Inscription en cours</span>
+    </button>
 
     <button mat-stroked-button type="button" routerLink="/login">
       Vous avez déjà un compte ? Se connecter

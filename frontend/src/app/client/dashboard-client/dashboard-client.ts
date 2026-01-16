@@ -1,10 +1,10 @@
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { LoginService } from '../../services/login/login-service';
 import { DashboardService } from '../../services/dashboard-service';
+import { Chart } from 'chart.js/auto';
 
 @Component({
   selector: 'app-dashboard-client',
-  imports: [],
   templateUrl: './dashboard-client.html',
   styleUrl: './dashboard-client.scss',
 })
@@ -14,9 +14,12 @@ export class DashboardClient implements OnInit {
   private dashboardService = inject(DashboardService);
   private cdRef = inject(ChangeDetectorRef);
 
+  // ===== UTILISATEUR =====
   user = this.loginService.user();
 
+  // ===== COMPTES & STATS =====
   comptes: any[] = [];
+
   statistiques = {
     totalComptes: 0,
     nombreCourant: 0,
@@ -26,48 +29,133 @@ export class DashboardClient implements OnInit {
     sommeEpargne: 0
   };
 
+  // ===== TRANSACTIONS & GRAPHE =====
+  transactions: any[] = [];
+
+  moisLabels = [
+    'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+    'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+  ];
+
+  depotsParMois = new Array(12).fill(0);
+  retraitsParMois = new Array(12).fill(0);
+
+  chart: any;
+
+  // ===============================
   ngOnInit(): void {
+
+    // On attend que le user soit bien chargé
     setTimeout(() => {
+
       const user = this.loginService.user();
+
       if (user && user.clientId) {
-        console.log('Client ID trouvé:', user.clientId);
-        
+        console.log('✅ Client ID:', user.clientId);
+
+        // ===== COMPTES =====
         this.dashboardService.getComptesClient(user.clientId).subscribe({
           next: (comptes) => {
             this.comptes = comptes;
-            console.log('Comptes récupérés:', comptes);
-            
-            // CALCULE LES STATISTIQUES
             this.calculerStatistiques(comptes);
-
             this.cdRef.detectChanges();
           },
-          error: (erreur) => {
-            console.error('Erreur:', erreur);
+          error: (err) => {
+            console.error('❌ Erreur comptes:', err);
           }
         });
+
+        // ===== TRANSACTIONS =====
+        this.dashboardService.getTransactionsClient(user.clientId).subscribe({
+          next: (transactions) => {
+            this.transactions = transactions;
+            console.log('📦 Transactions:', transactions);
+            this.traiterTransactions();
+          },
+          error: (err) => {
+            console.error('❌ Erreur transactions:', err);
+          }
+        });
+
+      } else {
+        console.error('❌ Utilisateur ou clientId introuvable');
       }
+
     }, 1500);
   }
 
+  // ===============================
+  // TRAITEMENT TRANSACTIONS
+  private traiterTransactions(): void {
+
+    this.depotsParMois.fill(0);
+    this.retraitsParMois.fill(0);
+
+    this.transactions.forEach(t => {
+      const mois = new Date(t.date).getMonth(); // 0 = Janvier
+
+      if (t.type === 'DEPOT') {
+        this.depotsParMois[mois]++;
+      }
+
+      if (t.type === 'RETRAIT') {
+        this.retraitsParMois[mois]++;
+      }
+    });
+
+    console.log('📊 Dépôts:', this.depotsParMois);
+    console.log('📊 Retraits:', this.retraitsParMois);
+
+    this.afficherGraphique();
+  }
+
+  // ===============================
+  // GRAPHE
+  private afficherGraphique(): void {
+
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
+    this.chart = new Chart('transactionsChart', {
+      type: 'bar',
+      data: {
+        labels: this.moisLabels,
+        datasets: [
+          {
+            label: 'Dépôts',
+            data: this.depotsParMois
+          },
+          {
+            label: 'Retraits',
+            data: this.retraitsParMois
+          }
+        ]
+      }
+    });
+  }
+
+  // ===============================
+  // STATISTIQUES COMPTES
   private calculerStatistiques(comptes: any[]): void {
-    // 1. Nombre total
+
     this.statistiques.totalComptes = comptes.length;
-    
-    // 2. Comptes courant
+
     const comptesCourant = comptes.filter(c => c.typeCompte === 'COURANT');
-    this.statistiques.nombreCourant = comptesCourant.length;
-    
-    // 3. Comptes épargne
     const comptesEpargne = comptes.filter(c => c.typeCompte === 'EPARGNE');
+
+    this.statistiques.nombreCourant = comptesCourant.length;
     this.statistiques.nombreEpargne = comptesEpargne.length;
-    
-    // 4. Sommes
-    this.statistiques.sommeTotale = comptes.reduce((total, c) => total + (c.solde || 0), 0);
-    this.statistiques.sommeCourant = comptesCourant.reduce((total, c) => total + (c.solde || 0), 0);
-    this.statistiques.sommeEpargne = comptesEpargne.reduce((total, c) => total + (c.solde || 0), 0);
-    
-    // Affiche dans la console
-    console.log('📊 STATISTIQUES :', this.statistiques);
+
+    this.statistiques.sommeTotale =
+      comptes.reduce((total, c) => total + (c.solde || 0), 0);
+
+    this.statistiques.sommeCourant =
+      comptesCourant.reduce((total, c) => total + (c.solde || 0), 0);
+
+    this.statistiques.sommeEpargne =
+      comptesEpargne.reduce((total, c) => total + (c.solde || 0), 0);
+
+    console.log('📊 STATISTIQUES:', this.statistiques);
   }
 }

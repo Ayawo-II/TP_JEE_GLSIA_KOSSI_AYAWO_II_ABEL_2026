@@ -28,7 +28,13 @@ public interface TransactionRepository extends JpaRepository<TransactionEntity, 
             @Param("dateFin") LocalDateTime dateFin
     );
 
-    @Query("SELECT t FROM TransactionEntity t WHERE t.compteSource.proprietaire.id = :clientId OR t.compteDestination.proprietaire.id = :clientId ORDER BY t.date DESC")
+    @Query("SELECT t FROM TransactionEntity t " +
+            "LEFT JOIN t.compteSource cs " +
+            "LEFT JOIN t.compteDestination cd " +
+            "LEFT JOIN cs.proprietaire csp " +
+            "LEFT JOIN cd.proprietaire cdp " +
+            "WHERE (csp.id = :clientId OR cdp.id = :clientId) " +
+            "ORDER BY t.date DESC")
     List<TransactionEntity> findByClientId(@Param("clientId") Long clientId);
 
     // ✅ NOUVELLE MÉTHODE : Trouver les transactions d'un client sur une période

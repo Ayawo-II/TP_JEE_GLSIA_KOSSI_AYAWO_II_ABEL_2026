@@ -295,14 +295,44 @@ public class TransactionService {
     public List<TransactionResponseDTO> getTransactionsByClientId(Long clientId) {
         log.info("Récupération des transactions du client ID: {}", clientId);
 
-        // Vérifier que le client existe
         if (!clientRepository.existsById(clientId)) {
             log.error("Client non trouvé avec l'ID : {}", clientId);
             throw new ClientNotFoundException(clientId);
         }
 
-        return transactionRepository.findByClientId(clientId)
-                .stream()
+        // 1. Récupérez d'abord les transactions
+        List<TransactionEntity> transactions = transactionRepository.findByClientId(clientId);
+
+        // 2. Log DÉTAILLÉ
+        log.info("=== DÉBOGAGE TRANSACTIONS ===");
+        log.info("Nombre total de transactions trouvées: {}", transactions.size());
+
+        // Log chaque transaction
+        for (int i = 0; i < transactions.size(); i++) {
+            TransactionEntity t = transactions.get(i);
+            log.info("Transaction {}: id={}, type={}, montant={}",
+                    i+1, t.getId(), t.getType(), t.getMontant());
+
+            // Vérifiez les comptes
+            if (t.getCompteSource() != null) {
+                log.info("  - Source: {} (clientId: {})",
+                        t.getCompteSource().getNumeroCompte(),
+                        t.getCompteSource().getProprietaire() != null ?
+                                t.getCompteSource().getProprietaire().getId() : "null");
+            }
+            if (t.getCompteDestination() != null) {
+                log.info("  - Dest: {} (clientId: {})",
+                        t.getCompteDestination().getNumeroCompte(),
+                        t.getCompteDestination().getProprietaire() != null ?
+                                t.getCompteDestination().getProprietaire().getId() : "null");
+            }
+        }
+
+        // 3. Vérifiez les données brutes avec une requête SQL
+        log.info("=== VÉRIFICATION SQL DIRECTE ===");
+        // (Vous pouvez aussi le faire dans phpMyAdmin/pgAdmin)
+
+        return transactions.stream()
                 .map(transactionMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }

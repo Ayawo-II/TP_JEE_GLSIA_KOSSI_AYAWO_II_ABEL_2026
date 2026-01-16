@@ -5,14 +5,12 @@
     <h3>Liste des Comptes</h3>
     
     <div class="header-actions">
-      <!-- Barre de recherche -->
       <input 
         type="text" 
         [(ngModel)]="recherche"
         placeholder="Rechercher un compte..." 
         class="search-bar">
       
-      <!-- Bouton Ajouter -->
       <button class="btn add" routerLink="/client/comptes/ajouter">
         Ajouter un compte
       </button>
@@ -35,14 +33,12 @@
   <!-- Tableau des comptes -->
   <div *ngIf="!loading && !error">
     
-    <!-- Résumé -->
     <div *ngIf="comptes.length > 0" class="summary">
       <p>Total: <strong>{{ comptes.length }}</strong> compte(s) 
         <span *ngIf="recherche">({{ comptesFiltres.length }} résultat(s) pour "{{ recherche }}")</span>
       </p>
     </div>
     
-    <!-- Table -->
     <table *ngIf="comptesFiltres.length > 0" class="accounts-table">
       <thead>
         <tr>
@@ -56,15 +52,15 @@
       <tbody>
         <tr *ngFor="let compte of comptesFiltres">
           <td>
-            <div class="account-number">{{ compte.numeroCompte || compte.numero || 'N/A' }}</div>
+            <div class="account-number">{{ compte.numeroCompte || 'N/A' }}</div>
             <small *ngIf="compte.dateCreation" class="account-date">
               Créé le {{ compte.dateCreation | date:'dd/MM/yyyy' }}
             </small>
           </td>
           
           <td>
-            <span [class]="getTypeBadgeClass(compte.typeCompte || compte.type)">
-              {{ compte.typeCompte || compte.type || 'N/A' }}
+            <span [class]="getTypeBadgeClass(compte.typeCompte)">
+              {{ compte.typeCompte || 'N/A' }}
             </span>
           </td>
           
@@ -73,13 +69,13 @@
           </td>
           
           <td class="actions-cell">
-            <button (click)="faireDepot(compte)" class="btn-action btn-depot">
+            <button (click)="preparerDepot(compte)" class="btn-action btn-depot">
               Dépôt
             </button>
-            <button (click)="faireRetrait(compte)" class="btn-action btn-retrait">
+            <button (click)="preparerRetrait(compte)" class="btn-action btn-retrait">
               Retrait
             </button>
-            <button (click)="faireVirement(compte)" class="btn-action btn-virement">
+            <button (click)="preparerVirement(compte)" class="btn-action btn-virement">
               Virement
             </button>
           </td>
@@ -87,12 +83,10 @@
       </tbody>
     </table>
 
-    <!-- Aucun résultat -->
     <div *ngIf="comptesFiltres.length === 0 && comptes.length > 0" class="no-results">
       <p>Aucun compte ne correspond à votre recherche "{{ recherche }}"</p>
     </div>
 
-    <!-- Aucun compte -->
     <div *ngIf="comptes.length === 0" class="no-accounts">
       <div class="no-accounts-icon">🏦</div>
       <p>Vous n'avez aucun compte bancaire</p>
@@ -103,3 +97,139 @@
   </div>
 
 </section>
+
+<!-- ===== MODALES ===== -->
+
+<!-- DÉPÔT : Saisie du montant -->
+<div *ngIf="showSaisieDepot" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Dépôt sur le compte {{compteSelectionne?.numeroCompte}}</h4>
+    
+    <div class="form-group">
+      <label>Montant (€)</label>
+      <input 
+        type="number" 
+        [(ngModel)]="montantDepot" 
+        placeholder="Entrez le montant"
+        min="1"
+        step="0.01">
+    </div>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerDepot()" class="btn-cancel">Annuler</button>
+      <button (click)="confirmerMontantDepot()" class="btn-confirm">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DÉPÔT : Confirmation -->
+<div *ngIf="showConfirmationDepot" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Confirmer le dépôt</h4>
+    
+    <div class="confirmation-details">
+      <p><strong>Compte :</strong> {{compteSelectionne?.numeroCompte}}</p>
+      <p><strong>Montant :</strong> {{montantDepot | currency:'EUR':'symbol':'1.2-2'}}</p>
+      <p><strong>Type :</strong> {{compteSelectionne?.typeCompte}}</p>
+    </div>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerDepot()" class="btn-cancel">Annuler</button>
+      <button (click)="validerDepot()" class="btn-confirm">Confirmer le dépôt</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETRAIT : Saisie du montant -->
+<div *ngIf="showSaisieRetrait" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Retrait sur le compte {{compteSelectionne?.numeroCompte}}</h4>
+    
+    <div class="form-group">
+      <label>Montant (€)</label>
+      <input 
+        type="number" 
+        [(ngModel)]="montantRetrait" 
+        placeholder="Entrez le montant"
+        min="1"
+        step="0.01"
+        max="{{compteSelectionne?.solde}}">
+      <small *ngIf="compteSelectionne?.solde">Solde disponible: {{compteSelectionne?.solde | currency:'EUR':'symbol':'1.2-2'}}</small>
+    </div>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerRetrait()" class="btn-cancel">Annuler</button>
+      <button (click)="confirmerMontantRetrait()" class="btn-confirm">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETRAIT : Confirmation -->
+<div *ngIf="showConfirmationRetrait" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Confirmer le retrait</h4>
+    
+    <div class="confirmation-details">
+      <p><strong>Compte :</strong> {{compteSelectionne?.numeroCompte}}</p>
+      <p><strong>Montant :</strong> {{montantRetrait | currency:'EUR':'symbol':'1.2-2'}}</p>
+      <p><strong>Solde après opération :</strong> {{(compteSelectionne?.solde - montantRetrait) | currency:'EUR':'symbol':'1.2-2'}}</p>
+    </div>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerRetrait()" class="btn-cancel">Annuler</button>
+      <button (click)="validerRetrait()" class="btn-confirm">Confirmer le retrait</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIREMENT : Saisie -->
+<div *ngIf="showSaisieVirement" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Virement depuis {{compteSelectionne?.numeroCompte}}</h4>
+    
+    <div class="form-group">
+      <label>Montant (€)</label>
+      <input 
+        type="number" 
+        [(ngModel)]="montantVirement" 
+        placeholder="Entrez le montant"
+        min="1"
+        step="0.01"
+        max="{{compteSelectionne?.solde}}">
+    </div>
+    
+    <div class="form-group">
+      <label>Compte destinataire</label>
+      <input 
+        type="text" 
+        [(ngModel)]="compteDestination" 
+        placeholder="Numéro de compte destinataire">
+    </div>
+    
+    <small *ngIf="compteSelectionne?.solde">Solde disponible: {{compteSelectionne?.solde | currency:'EUR':'symbol':'1.2-2'}}</small>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerVirement()" class="btn-cancel">Annuler</button>
+      <button (click)="confirmerVirement()" class="btn-confirm">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIREMENT : Confirmation -->
+<div *ngIf="showConfirmationVirement" class="dialog-overlay">
+  <div class="dialog">
+    <h4>Confirmer le virement</h4>
+    
+    <div class="confirmation-details">
+      <p><strong>Compte source :</strong> {{compteSelectionne?.numeroCompte}}</p>
+      <p><strong>Compte destinataire :</strong> {{compteDestination}}</p>
+      <p><strong>Montant :</strong> {{montantVirement | currency:'EUR':'symbol':'1.2-2'}}</p>
+      <p><strong>Solde après opération :</strong> {{(compteSelectionne?.solde - montantVirement) | currency:'EUR':'symbol':'1.2-2'}}</p>
+    </div>
+    
+    <div class="dialog-actions">
+      <button (click)="annulerVirement()" class="btn-cancel">Annuler</button>
+      <button (click)="validerVirement()" class="btn-confirm">Confirmer le virement</button>
+    </div>
+  </div>
+</div>

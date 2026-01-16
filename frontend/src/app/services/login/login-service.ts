@@ -59,6 +59,10 @@ export class LoginService {
     );
   }
 
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.BASE_URL}/user`, userData);
+  }
+
   getUserByUsername(username: string): Observable<User> {
     console.log('🔍 Fetching user:', username);
     
@@ -93,4 +97,5 @@ export class LoginService {
   isAuthenticated(): boolean {
     return !!this.user() && !!localStorage.getItem('token');
   }
+
 }
