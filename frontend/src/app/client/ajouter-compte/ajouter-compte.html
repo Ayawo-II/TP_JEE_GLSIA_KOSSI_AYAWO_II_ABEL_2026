@@ -67,7 +67,6 @@
       
       <!-- Contenu -->
       <div class="confirmation-content">
-        <div class="confirmation-icon">⚠️</div>
         <p>Êtes-vous sûr de vouloir créer un compte <strong>{{ compteData.typeCompte === 'COURANT' ? 'Courant' : 'Épargne' }}</strong> ?</p>
         
         <div class="confirmation-details">
@@ -77,12 +76,12 @@
           </div>
           <div class="detail-item">
             <span class="detail-label">Client :</span>
-            <span class="detail-value">{{ clientInfo?.clientNom }}</span>
+            <span class="detail-value">{{ clientInfo?.nom }} {{ clientInfo?.prenom }}</span>
           </div>
         </div>
         
         <p class="confirmation-warning">
-          Cette action créera un nouveau compte bancaire associé à votre profil.
+          Cette action créera un nouveau compte bancaire associé au profil du client {{ clientInfo?.nom }}.
         </p>
       </div>
       

@@ -4,18 +4,14 @@ import com.ayawo.banque.ega.entities.ClientEntity;
 import com.ayawo.banque.ega.entities.CompteEntity;
 import com.ayawo.banque.ega.entities.TransactionEntity;
 import com.ayawo.banque.ega.enums.TypeTransaction;
-import com.ayawo.banque.ega.exceptions.compte.CompteNotFoundException;
 import com.ayawo.banque.ega.repositories.ClientRepository;
 import com.ayawo.banque.ega.repositories.CompteRepository;
 import com.ayawo.banque.ega.repositories.TransactionRepository;
-import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import lombok.RequiredArgsConstructor;
@@ -27,164 +23,40 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class ReleveService {
 
     private final ClientRepository clientRepository;
     private final CompteRepository compteRepository;
     private final TransactionRepository transactionRepository;
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final DateTimeFormatter DATE_SIMPLE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_FORMAT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    /**
-     * Générer un relevé bancaire pour UN compte spécifique
-     */
-    @Transactional(readOnly = true)
-    public byte[] genererReleveCompte(String numeroCompte, LocalDateTime dateDebut, LocalDateTime dateFin) {
-        log.info("Génération du relevé pour le compte {} du {} au {}", numeroCompte, dateDebut, dateFin);
+    private static final DateTimeFormatter DATE_SIMPLE =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        CompteEntity compte = compteRepository.findByNumeroCompte(numeroCompte)
-                .orElseThrow(() -> new CompteNotFoundException(numeroCompte));
+    // ===================== MÉTHODE PRINCIPALE =====================
 
-        List<TransactionEntity> transactions = transactionRepository
-                .findByNumeroCompteAndDateBetween(numeroCompte, dateDebut, dateFin);
+    public byte[] genererReleveGlobalClient(
+            Long clientId,
+            LocalDateTime dateDebut,
+            LocalDateTime dateFin) {
 
-        BigDecimal soldeActuel = compte.getSolde();
-        BigDecimal soldeInitial = calculerSoldeInitial(compte, dateDebut);
-
-        return genererPDFCompte(compte, transactions, dateDebut, dateFin, soldeInitial, soldeActuel);
-    }
-
-    /**
-     * Générer un relevé GLOBAL pour TOUS les comptes d'un client
-     */
-    @Transactional(readOnly = true)
-    public byte[] genererReleveGlobalClient(Long clientId, LocalDateTime dateDebut, LocalDateTime dateFin) {
-        log.info("Génération du relevé global pour le client {} du {} au {}", clientId, dateDebut, dateFin);
-
-        // 1. Récupérer le client
         ClientEntity client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'ID: " + clientId));
+                .orElseThrow(() -> new RuntimeException("Client introuvable"));
 
-        // 2. Récupérer tous les comptes du client
-        List<CompteEntity> comptes = compteRepository.findByProprietaireId(clientId);
+        List<CompteEntity> comptes =
+                compteRepository.findByProprietaireId(clientId);
 
-        if (comptes.isEmpty()) {
-            throw new RuntimeException("Aucun compte trouvé pour ce client");
-        }
-
-        // 3. Récupérer TOUTES les transactions du client en UNE SEULE requête
-        List<TransactionEntity> toutesTransactions = transactionRepository
-                .findByClientIdAndDateBetween(clientId, dateDebut, dateFin);
-
-        log.info("✅ Total transactions trouvées pour le client: {}", toutesTransactions.size());
-
-        // 4. Grouper les transactions par compte et calculer les totaux
-        Map<CompteEntity, List<TransactionEntity>> transactionsParCompte = new LinkedHashMap<>();
-        BigDecimal totalDepots = BigDecimal.ZERO;
-        BigDecimal totalRetraits = BigDecimal.ZERO;
-        BigDecimal soldeTotal = BigDecimal.ZERO;
-
-        for (CompteEntity compte : comptes) {
-            List<TransactionEntity> transactionsCompte = new ArrayList<>();
-
-            for (TransactionEntity t : toutesTransactions) {
-                boolean concerneCompte = false;
-
-                // DEPOT
-                if (t.getType() == TypeTransaction.DEPOT &&
-                        t.getCompteSource() != null &&
-                        compte.getNumeroCompte().equals(t.getCompteSource().getNumeroCompte())) {
-
-                    concerneCompte = true;
-                    totalDepots = totalDepots.add(t.getMontant());
-                }
-
-                // RETRAIT
-                else if (t.getType() == TypeTransaction.RETRAIT &&
-                        t.getCompteSource() != null &&
-                        compte.getNumeroCompte().equals(t.getCompteSource().getNumeroCompte())) {
-
-                    concerneCompte = true;
-                    totalRetraits = totalRetraits.add(t.getMontant());
-                }
-
-                // VIREMENT
-                else if (t.getType() == TypeTransaction.VIREMENT) {
-
-                    // virement émis
-                    if (t.getCompteSource() != null &&
-                            compte.getNumeroCompte().equals(t.getCompteSource().getNumeroCompte())) {
-
-                        concerneCompte = true;
-                        totalRetraits = totalRetraits.add(t.getMontant());
-                    }
-
-                    // virement reçu
-                    if (t.getCompteDestination() != null &&
-                            compte.getNumeroCompte().equals(t.getCompteDestination().getNumeroCompte())) {
-
-                        concerneCompte = true;
-                        totalDepots = totalDepots.add(t.getMontant());
-                    }
-                }
-
-                if (concerneCompte) {
-                    transactionsCompte.add(t);
-                }
-            }
-
-            log.info("📊 Compte {} : {} transactions", compte.getNumeroCompte(), transactionsCompte.size());
-
-            transactionsParCompte.put(compte, transactionsCompte);
-            soldeTotal = soldeTotal.add(compte.getSolde());
-        }
-
-        // 5. Générer le PDF
-        return genererPDFGlobal(client, transactionsParCompte, dateDebut, dateFin,
-                totalDepots, totalRetraits, soldeTotal);
-    }
-
-    /**
-     * Calculer le solde initial à une date donnée
-     */
-    private BigDecimal calculerSoldeInitial(CompteEntity compte, LocalDateTime dateDebut) {
-        BigDecimal soldeActuel = compte.getSolde();
-
-        List<TransactionEntity> transactionsApres = transactionRepository
-                .findByNumeroCompteAndDateBetween(compte.getNumeroCompte(), dateDebut, LocalDateTime.now());
-
-        for (TransactionEntity transaction : transactionsApres) {
-            if (transaction.getCompteSource() != null &&
-                    transaction.getCompteSource().getNumeroCompte().equals(compte.getNumeroCompte())) {
-                if (transaction.getType() == TypeTransaction.RETRAIT ||
-                        transaction.getType() == TypeTransaction.VIREMENT) {
-                    soldeActuel = soldeActuel.add(transaction.getMontant());
-                } else if (transaction.getType() == TypeTransaction.DEPOT) {
-                    soldeActuel = soldeActuel.subtract(transaction.getMontant());
-                }
-            }
-
-            if (transaction.getCompteDestination() != null &&
-                    transaction.getCompteDestination().getNumeroCompte().equals(compte.getNumeroCompte())) {
-                soldeActuel = soldeActuel.subtract(transaction.getMontant());
-            }
-        }
-
-        return soldeActuel;
-    }
-
-    /**
-     * Générer le PDF pour UN compte
-     */
-    private byte[] genererPDFCompte(CompteEntity compte, List<TransactionEntity> transactions,
-                                    LocalDateTime dateDebut, LocalDateTime dateFin,
-                                    BigDecimal soldeInitial, BigDecimal soldeFinal) {
+        List<TransactionEntity> transactions =
+                transactionRepository.findByClientIdAndDateBetween(
+                        clientId, dateDebut, dateFin);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
@@ -193,429 +65,152 @@ public class ReleveService {
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            ajouterEnteteCompte(document, compte, dateDebut, dateFin);
-            ajouterInfosCompte(document, compte, soldeInitial, soldeFinal);
-            ajouterTableauTransactions(document, transactions, compte.getNumeroCompte());
-            ajouterPiedDePage(document);
+            ajouterEntete(document, client, dateDebut, dateFin);
+            ajouterTableauComptes(document, comptes);
+            ajouterTableauOperations(document, transactions);
 
             document.close();
-            log.info("Relevé généré avec succès pour le compte {}", compte.getNumeroCompte());
-
         } catch (Exception e) {
-            log.error("Erreur lors de la génération du relevé PDF", e);
-            throw new RuntimeException("Erreur lors de la génération du relevé", e);
+            log.error("Erreur génération relevé", e);
+            throw new RuntimeException("Erreur génération PDF", e);
         }
 
         return baos.toByteArray();
     }
 
-    /**
-     * Générer le PDF GLOBAL pour tous les comptes
-     */
-    private byte[] genererPDFGlobal(ClientEntity client,
-                                    Map<CompteEntity, List<TransactionEntity>> transactionsParCompte,
-                                    LocalDateTime dateDebut, LocalDateTime dateFin,
-                                    BigDecimal totalDepots, BigDecimal totalRetraits,
-                                    BigDecimal soldeTotal) {
+    // ===================== EN-TÊTE =====================
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private void ajouterEntete(Document doc,
+                               ClientEntity client,
+                               LocalDateTime debut,
+                               LocalDateTime fin) {
 
-        try {
-            PdfWriter writer = new PdfWriter(baos);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf);
-
-            // En-tête
-            ajouterEnteteGlobal(document, client, dateDebut, dateFin);
-
-            // Résumé global
-            ajouterResumeGlobal(document, transactionsParCompte.size(),
-                    totalDepots, totalRetraits, soldeTotal);
-
-            // Détail par compte
-            for (Map.Entry<CompteEntity, List<TransactionEntity>> entry : transactionsParCompte.entrySet()) {
-                ajouterDetailsCompte(document, entry.getKey(), entry.getValue());
-            }
-
-            // Pied de page
-            ajouterPiedDePage(document);
-
-            document.close();
-            log.info("Relevé global généré avec succès pour le client {}", client.getNomComplet());
-
-        } catch (Exception e) {
-            log.error("Erreur lors de la génération du relevé global", e);
-            throw new RuntimeException("Erreur lors de la génération du PDF global", e);
-        }
-
-        return baos.toByteArray();
-    }
-
-    // ========== EN-TÊTES ==========
-
-    private void ajouterEnteteCompte(Document document, CompteEntity compte,
-                                     LocalDateTime dateDebut, LocalDateTime dateFin) {
-        document.add(new Paragraph("BANQUE EGA")
-                .setFontSize(24)
+        doc.add(new Paragraph("RELEVÉ BANCAIRE")
                 .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(5)
-                .setFontColor(ColorConstants.BLUE));
-
-        document.add(new Paragraph("RELEVÉ BANCAIRE")
-                .setFontSize(18)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(15));
-
-        Table infoTable = new Table(UnitValue.createPercentArray(new float[]{50, 50}));
-        infoTable.setWidth(UnitValue.createPercentValue(90));
-        infoTable.setHorizontalAlignment(HorizontalAlignment.CENTER);
-        infoTable.setMarginBottom(15);
-
-        infoTable.addCell(new Cell().add(new Paragraph("Numéro de compte :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(compte.getNumeroCompte()))
-                .setPadding(5));
-
-        infoTable.addCell(new Cell().add(new Paragraph("Titulaire :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(compte.getProprietaire().getNomComplet()))
-                .setPadding(5));
-
-        infoTable.addCell(new Cell().add(new Paragraph("Période :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(
-                        String.format("Du %s au %s",
-                                dateDebut.format(DATE_SIMPLE),
-                                dateFin.format(DATE_SIMPLE))))
-                .setPadding(5));
-
-        document.add(infoTable);
-        document.add(new Paragraph(" ").setMarginBottom(20));
-    }
-
-    private void ajouterEnteteGlobal(Document document, ClientEntity client,
-                                     LocalDateTime dateDebut, LocalDateTime dateFin) {
-        document.add(new Paragraph("BANQUE EGA")
-                .setFontSize(24)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(5)
-                .setFontColor(ColorConstants.BLUE));
-
-        document.add(new Paragraph("RELEVÉ BANCAIRE GLOBAL")
-                .setFontSize(18)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(15));
-
-        Table infoTable = new Table(UnitValue.createPercentArray(new float[]{50, 50}));
-        infoTable.setWidth(UnitValue.createPercentValue(90));
-        infoTable.setHorizontalAlignment(HorizontalAlignment.CENTER);
-        infoTable.setMarginBottom(15);
-
-        infoTable.addCell(new Cell().add(new Paragraph("Client :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(client.getNomComplet()))
-                .setPadding(5));
-
-        infoTable.addCell(new Cell().add(new Paragraph("Email :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(client.getEmail()))
-                .setPadding(5));
-
-        infoTable.addCell(new Cell().add(new Paragraph("Période :").setBold())
-                .setPadding(5));
-        infoTable.addCell(new Cell().add(new Paragraph(
-                        String.format("Du %s au %s",
-                                dateDebut.format(DATE_SIMPLE),
-                                dateFin.format(DATE_SIMPLE))))
-                .setPadding(5));
-
-        document.add(infoTable);
-        document.add(new Paragraph(" ").setMarginBottom(20));
-    }
-
-    // ========== INFOS COMPTE ==========
-
-    private void ajouterInfosCompte(Document document, CompteEntity compte,
-                                    BigDecimal soldeInitial, BigDecimal soldeFinal) {
-        document.add(new Paragraph("INFORMATIONS DU COMPTE")
-                .setFontSize(16)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginTop(15)
-                .setMarginBottom(15)
-                .setFontColor(ColorConstants.BLUE));
-
-        Table table = new Table(UnitValue.createPercentArray(new float[]{40, 60}));
-        table.setWidth(UnitValue.createPercentValue(90));
-        table.setMarginBottom(20);
-        table.setHorizontalAlignment(HorizontalAlignment.CENTER);
-
-        table.addCell(new Cell().add(new Paragraph("Titulaire :").setBold())
-                .setPadding(8)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(compte.getProprietaire().getNomComplet()))
-                .setPadding(8));
-
-        table.addCell(new Cell().add(new Paragraph("Numéro de compte :").setBold())
-                .setPadding(8)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(compte.getNumeroCompte()))
-                .setPadding(8));
-
-        table.addCell(new Cell().add(new Paragraph("Type de compte :").setBold())
-                .setPadding(8)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(compte.getTypeCompte().toString()))
-                .setPadding(8));
-
-        table.addCell(new Cell().add(new Paragraph("Solde initial :").setBold())
-                .setPadding(8)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(String.format("%,.2f FCFA", soldeInitial)))
-                .setPadding(8)
-                .setTextAlignment(TextAlignment.RIGHT));
-
-        table.addCell(new Cell().add(new Paragraph("Solde final :").setBold())
-                .setPadding(8)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(String.format("%,.2f FCFA", soldeFinal)).setBold())
-                .setPadding(8)
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setFontColor(ColorConstants.BLUE));
-
-        document.add(table);
-        document.add(new Paragraph("\n"));
-    }
-
-    // ========== RÉSUMÉ GLOBAL ==========
-
-    private void ajouterResumeGlobal(Document document, int nombreComptes,
-                                     BigDecimal totalDepots, BigDecimal totalRetraits,
-                                     BigDecimal soldeTotal) {
-        document.add(new Paragraph("RÉSUMÉ GLOBAL")
-                .setFontSize(16)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginTop(15)
-                .setMarginBottom(15)
-                .setFontColor(ColorConstants.BLUE));
-
-        Table table = new Table(UnitValue.createPercentArray(new float[]{50, 50}));
-        table.setWidth(UnitValue.createPercentValue(90));
-        table.setMarginBottom(20);
-        table.setHorizontalAlignment(HorizontalAlignment.CENTER);
-
-        table.addCell(new Cell().add(new Paragraph("Nombre de comptes :").setBold())
-                .setPadding(10)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(String.valueOf(nombreComptes)))
-                .setPadding(10)
-                .setTextAlignment(TextAlignment.RIGHT));
-
-        table.addCell(new Cell().add(new Paragraph("Total des dépôts :").setBold())
-                .setPadding(10)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(String.format("%,.2f FCFA", totalDepots))
-                        .setBold())
-                .setPadding(10)
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setFontColor(ColorConstants.GREEN));
-
-        table.addCell(new Cell().add(new Paragraph("Total des retraits :").setBold())
-                .setPadding(10)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        table.addCell(new Cell().add(new Paragraph(String.format("%,.2f FCFA", totalRetraits))
-                        .setBold())
-                .setPadding(10)
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setFontColor(ColorConstants.RED));
-
-        table.addCell(new Cell().add(new Paragraph("SOLDE TOTAL :").setBold())
-                .setPadding(10)
-                .setBackgroundColor(ColorConstants.DARK_GRAY)
-                .setFontColor(ColorConstants.WHITE));
-        table.addCell(new Cell().add(new Paragraph(String.format("%,.2f FCFA", soldeTotal))
-                        .setBold()
-                        .setFontSize(14))
-                .setPadding(10)
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setBackgroundColor(ColorConstants.LIGHT_GRAY)
-                .setFontColor(ColorConstants.BLUE));
-
-        document.add(table);
-        document.add(new Paragraph("\n"));
-    }
-
-    // ========== DÉTAILS PAR COMPTE ==========
-
-    private void ajouterDetailsCompte(Document document, CompteEntity compte,
-                                      List<TransactionEntity> transactions) {
-        document.add(new Paragraph("Compte " + compte.getTypeCompte() + " - N° " + compte.getNumeroCompte())
-                .setFontSize(14)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginTop(20)
-                .setMarginBottom(5)
-                .setFontColor(ColorConstants.BLUE));
-
-        document.add(new Paragraph("Solde actuel : " + String.format("%,.2f FCFA", compte.getSolde()))
-                .setFontSize(12)
-                .setBold()
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginBottom(15));
-
-        if (transactions.isEmpty()) {
-            document.add(new Paragraph("Aucune transaction sur cette période")
-                    .setItalic()
-                    .setFontSize(10)
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setMarginBottom(20));
-            return;
-        }
-
-        ajouterTableauTransactions(document, transactions, compte.getNumeroCompte());
-    }
-
-    // ========== TABLEAU TRANSACTIONS ==========
-
-    private void ajouterTableauTransactions(Document document, List<TransactionEntity> transactions,
-                                            String numeroCompte) {
-        if (transactions.isEmpty()) {
-            document.add(new Paragraph("Aucune opération sur cette période.")
-                    .setItalic()
-                    .setTextAlignment(TextAlignment.CENTER));
-            return;
-        }
-
-        float[] columnWidths = {25f, 20f, 27.5f, 27.5f};
-        Table table = new Table(columnWidths);
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setMarginBottom(15);
-
-        // En-têtes
-        table.addHeaderCell(new Cell().add(new Paragraph("DATE").setBold())
-                .setBackgroundColor(ColorConstants.DARK_GRAY)
-                .setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setPadding(8));
-
-        table.addHeaderCell(new Cell().add(new Paragraph("TYPE").setBold())
-                .setBackgroundColor(ColorConstants.DARK_GRAY)
-                .setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setPadding(8));
-
-        table.addHeaderCell(new Cell().add(new Paragraph("DÉBIT").setBold())
-                .setBackgroundColor(ColorConstants.DARK_GRAY)
-                .setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setPadding(8));
-
-        table.addHeaderCell(new Cell().add(new Paragraph("CRÉDIT").setBold())
-                .setBackgroundColor(ColorConstants.DARK_GRAY)
-                .setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setPadding(8));
-
-        // Lignes
-        for (TransactionEntity transaction : transactions) {
-            // Colonne DATE
-            table.addCell(new Cell()
-                    .add(new Paragraph(transaction.getDate().format(DATE_FORMATTER)))
-                    .setFontSize(10)
-                    .setPadding(6)
-                    .setTextAlignment(TextAlignment.CENTER));
-
-            // Colonne TYPE
-            table.addCell(new Cell()
-                    .add(new Paragraph(transaction.getType().toString()))
-                    .setFontSize(10)
-                    .setPadding(6)
-                    .setTextAlignment(TextAlignment.CENTER));
-
-            boolean estDebit = false;
-
-            if (transaction.getType() == TypeTransaction.DEPOT) {
-                // DÉPÔT = CRÉDIT (argent entre)
-                estDebit = false;
-            }
-            else if (transaction.getType() == TypeTransaction.RETRAIT) {
-                // RETRAIT = DÉBIT (argent sort)
-                estDebit = true;
-            }
-            else if (transaction.getType() == TypeTransaction.VIREMENT) {
-                // Virement émis = DÉBIT, Virement reçu = CRÉDIT
-                if (transaction.getCompteSource() != null &&
-                        transaction.getCompteSource().getNumeroCompte().equals(numeroCompte)) {
-                    estDebit = true; // Virement émis
-                } else {
-                    estDebit = false; // Virement reçu
-                }
-            }
-
-            if (estDebit) {
-                // Débit (sortie d'argent)
-                table.addCell(new Cell()
-                        .add(new Paragraph(String.format("%,.2f FCFA", transaction.getMontant())))
-                        .setFontSize(10)
-                        .setPadding(6)
-                        .setTextAlignment(TextAlignment.RIGHT)
-                        .setFontColor(ColorConstants.RED)
-                        .setBold());
-
-                // Crédit vide pour débit
-                table.addCell(new Cell()
-                        .add(new Paragraph("-"))
-                        .setFontSize(10)
-                        .setPadding(6)
-                        .setTextAlignment(TextAlignment.CENTER)
-                        .setFontColor(ColorConstants.GRAY));
-            } else {
-                // Débit vide pour crédit
-                table.addCell(new Cell()
-                        .add(new Paragraph("-"))
-                        .setFontSize(10)
-                        .setPadding(6)
-                        .setTextAlignment(TextAlignment.CENTER)
-                        .setFontColor(ColorConstants.GRAY));
-
-                // Crédit (entrée d'argent)
-                table.addCell(new Cell()
-                        .add(new Paragraph(String.format("%,.2f FCFA", transaction.getMontant())))
-                        .setFontSize(10)
-                        .setPadding(6)
-                        .setTextAlignment(TextAlignment.RIGHT)
-                        .setFontColor(ColorConstants.GREEN)
-                        .setBold());
-            }
-        }
-
-        document.add(table);
-        document.add(new Paragraph("\n"));
-    }
-
-    // ========== PIED DE PAGE ==========
-
-    private void ajouterPiedDePage(Document document) {
-        document.add(new Paragraph("\n"));
-        document.add(new Paragraph("-".repeat(80))
-                .setFontSize(8)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setMarginTop(20));
-
-        document.add(new Paragraph("Banque EGA - Tous droits réservés")
-                .setFontSize(10)
-                .setItalic()
+                .setFontSize(20)
                 .setTextAlignment(TextAlignment.CENTER));
 
-        document.add(new Paragraph("Date d'édition : " + LocalDateTime.now().format(DATE_FORMATTER))
-                .setFontSize(10)
-                .setItalic()
+        doc.add(new Paragraph("BANQUE EGA")
+                .setFontSize(14)
                 .setTextAlignment(TextAlignment.CENTER)
                 .setMarginBottom(20));
+
+        doc.add(new Paragraph("Client : " + client.getNomComplet()));
+        doc.add(new Paragraph("Adresse : " + client.getAdresse()));
+        doc.add(new Paragraph("Période : du "
+                + debut.format(DATE_SIMPLE)
+                + " au "
+                + fin.format(DATE_SIMPLE)));
+
+        doc.add(new Paragraph("\n"));
+    }
+
+    // ===================== TABLEAU COMPTES =====================
+
+    private void ajouterTableauComptes(Document doc,
+                                       List<CompteEntity> comptes) {
+
+        doc.add(new Paragraph("LISTE DES COMPTES")
+                .setBold()
+                .setFontSize(14));
+
+        Table table = new Table(new float[]{30, 30, 30});
+        table.setWidth(UnitValue.createPercentValue(100));
+
+        table.addHeaderCell("Numéro de compte");
+        table.addHeaderCell("Type de compte");
+        table.addHeaderCell("Solde");
+
+        for (CompteEntity compte : comptes) {
+            table.addCell(compte.getNumeroCompte());
+            table.addCell(compte.getTypeCompte().name());
+            table.addCell(compte.getSolde() + " FCFA");
+        }
+
+        doc.add(table);
+        doc.add(new Paragraph("\n"));
+    }
+
+    // ===================== TABLEAU OPÉRATIONS =====================
+
+    private void ajouterTableauOperations(Document doc,
+                                          List<TransactionEntity> transactions) {
+
+        doc.add(new Paragraph("HISTORIQUE DES OPÉRATIONS")
+                .setBold()
+                .setFontSize(14));
+
+        Table table = new Table(new float[]{20, 20, 30, 15, 15});
+        table.setWidth(UnitValue.createPercentValue(100));
+
+        table.addHeaderCell("Date");
+        table.addHeaderCell("N° Compte");
+        table.addHeaderCell("Opération");
+        table.addHeaderCell("Débit");
+        table.addHeaderCell("Crédit");
+
+        for (TransactionEntity t : transactions) {
+
+            switch (t.getType()) {
+
+                case DEPOT -> ajouterLigne(
+                        table,
+                        t,
+                        t.getCompteSource().getNumeroCompte(),
+                        "Dépôt",
+                        null,
+                        t.getMontant()
+                );
+
+                case RETRAIT -> ajouterLigne(
+                        table,
+                        t,
+                        t.getCompteSource().getNumeroCompte(),
+                        "Retrait",
+                        t.getMontant(),
+                        null
+                );
+
+                case VIREMENT -> {
+                    // Débit compte source
+                    ajouterLigne(
+                            table,
+                            t,
+                            t.getCompteSource().getNumeroCompte(),
+                            "Virement sortant",
+                            t.getMontant(),
+                            null
+                    );
+
+                    // Crédit compte destination
+                    ajouterLigne(
+                            table,
+                            t,
+                            t.getCompteDestination().getNumeroCompte(),
+                            "Virement entrant",
+                            null,
+                            t.getMontant()
+                    );
+                }
+            }
+        }
+
+        doc.add(table);
+    }
+
+    // ===================== LIGNE OPÉRATION =====================
+
+    private void ajouterLigne(Table table,
+                              TransactionEntity t,
+                              String numeroCompte,
+                              String operation,
+                              BigDecimal debit,
+                              BigDecimal credit) {
+
+        table.addCell(t.getDate().format(DATE_FORMAT));
+        table.addCell(numeroCompte);
+        table.addCell(operation);
+        table.addCell(debit == null ? "-" : debit + " FCFA");
+        table.addCell(credit == null ? "-" : credit + " FCFA");
     }
 }

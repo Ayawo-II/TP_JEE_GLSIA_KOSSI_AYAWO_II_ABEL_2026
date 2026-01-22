@@ -26,11 +26,14 @@ export class Comptes {
   montantDepot: number = 0;
   showSaisieDepot = false;
   showConfirmationDepot = false;
+  depotReussi = false;
+  soldeInsuffisant = false;
   
   // Retrait
   montantRetrait: number = 0;
   showSaisieRetrait = false;
   showConfirmationRetrait = false;
+  retraitReussi = false;
 
   ngOnInit(): void {
     this.loadComptes();
@@ -120,6 +123,7 @@ export class Comptes {
     this.transactionService.effectuerDepot(depotData).subscribe({
       next: () => {
         this.showConfirmationDepot = false;
+        this.depotReussi = true;
         this.compteSelectionne = null;
         this.loadComptes();
       },
@@ -148,6 +152,14 @@ export class Comptes {
       alert("Montant invalide");
       return;
     }
+
+    if (this.montantRetrait > this.compteSelectionne?.solde) {
+      this.soldeInsuffisant = true;
+      this.showSaisieRetrait = false;
+      return;
+    }
+
+    this.soldeInsuffisant = false;
     this.showSaisieRetrait = false;
     this.showConfirmationRetrait = true;
   }
@@ -162,6 +174,7 @@ export class Comptes {
     this.transactionService.effectuerRetrait(retraitData).subscribe({
       next: () => {
         this.showConfirmationRetrait = false;
+        this.retraitReussi = true;
         this.loadComptes();
       },
       error: (error) => {

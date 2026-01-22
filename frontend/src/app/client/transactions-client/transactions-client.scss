@@ -69,6 +69,20 @@
   }
 }
 
+.btn-preview {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-preview:hover {
+  background: #2980b9;
+}
+
 /* ===== NOUVEAU : BADGES ===== */
 .info-badge {
   background: #3498db;

@@ -150,7 +150,6 @@
         min="1"
         step="100"
         max="{{compteSelectionne?.solde}}">
-      <small *ngIf="compteSelectionne?.solde">Solde disponible: {{compteSelectionne?.solde}} FCFA</small>
     </div>
     
     <div class="dialog-actions">
@@ -168,12 +167,81 @@
     <div class="confirmation-details">
       <p><strong>Compte :</strong> {{compteSelectionne?.numeroCompte}}</p>
       <p><strong>Montant :</strong> {{montantRetrait}} FCFA</p>
-      <p><strong>Solde après opération :</strong> {{(compteSelectionne?.solde - montantRetrait)}} FCFA</p>
     </div>
     
     <div class="dialog-actions">
       <button (click)="annulerRetrait()" class="btn-cancel">Annuler</button>
       <button (click)="validerRetrait()" class="btn-confirm">Confirmer le retrait</button>
+    </div>
+  </div>
+</div>
+
+<!-- SOLDE INSUFFISANT -->
+<div *ngIf="soldeInsuffisant" class="dialog-overlay">
+  <div class="dialog">
+    <h4 style="color: #dc3545; text-align: center; margin-bottom: 10px;">
+      Solde insuffisant
+    </h4>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+      <p>Vous ne pouvez pas retirer <strong>{{montantRetrait}} FCFA</strong></p>
+    </div>
+    
+    <div class="dialog-actions">
+      <button 
+        (click)="soldeInsuffisant = false; showSaisieRetrait = true" 
+        class="btn-cancel">
+        Modifier le montant
+      </button>
+      <button 
+        (click)="soldeInsuffisant = false; compteSelectionne = null" 
+        class="btn-confirm">
+        Annuler
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DÉPÔT RÉUSSI -->
+<div *ngIf="depotReussi" class="dialog-overlay">
+  <div class="dialog">
+    <h4 style="color: #28a745; text-align: center; margin-bottom: 10px;">
+      Dépôt effectué avec succès !
+    </h4>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+      <p><strong>{{montantDepot}} FCFA</strong> ont été ajoutés au compte</p>
+      <p><strong>{{compteSelectionne?.numeroCompte}}</strong></p>
+    </div>
+    
+    <div class="dialog-actions" style="justify-content: center;">
+      <button 
+        (click)="depotReussi = false; compteSelectionne = null" 
+        class="btn-confirm">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- RETRAIT RÉUSSI (optionnel) -->
+<div *ngIf="retraitReussi" class="dialog-overlay">
+  <div class="dialog">
+    <h4 style="color: #28a745; text-align: center; margin-bottom: 10px;">
+      Retrait effectué avec succès !
+    </h4>
+    
+    <div style="text-align: center; margin-bottom: 20px;">
+      <p><strong>{{montantRetrait}} FCFA</strong> ont été retirés du compte</p>
+      <p><strong>{{compteSelectionne?.numeroCompte}}</strong></p>
+    </div>
+    
+    <div class="dialog-actions" style="justify-content: center;">
+      <button 
+        (click)="retraitReussi = false; compteSelectionne = null" 
+        class="btn-confirm">
+        Fermer
+      </button>
     </div>
   </div>
 </div>

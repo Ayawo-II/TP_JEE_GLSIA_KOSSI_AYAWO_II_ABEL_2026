@@ -21,55 +21,42 @@ public class ReleveController {
     private final ReleveService releveService;
 
     /**
-     * Générer et télécharger un relevé bancaire pour UN compte spécifique
+     * Générer et télécharger un relevé bancaire GLOBAL
+     * (tous les comptes + toutes les opérations)
      *
-     * GET /api/releves/compte/{numeroCompte}?dateDebut=...&dateFin=...
-     */
-    @GetMapping("/compte/{numeroCompte}")
-    public ResponseEntity<byte[]> genererReleveCompte(
-            @PathVariable String numeroCompte,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFin) {
-
-        log.info("Génération du relevé pour le compte: {}", numeroCompte);
-
-        byte[] pdfBytes = releveService.genererReleveCompte(numeroCompte, dateDebut, dateFin);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "releve_compte_" + numeroCompte + ".pdf");
-        headers.setContentLength(pdfBytes.length);
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
-    }
-
-    /**
-     * Générer et télécharger un relevé bancaire GLOBAL pour TOUS les comptes d'un client
-     * entre deux dates spécifiques
-     *
-     * GET /api/releves/client/{clientId}?dateDebut=2025-01-01T00:00:00&dateFin=2025-01-31T23:59:59
+     * GET /releves/client/{clientId}
+     * ?dateDebut=2025-01-01T00:00:00
+     * &dateFin=2025-01-31T23:59:59
      */
     @GetMapping("/client/{clientId}")
     public ResponseEntity<byte[]> genererReleveGlobalClient(
             @PathVariable Long clientId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateDebut,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateFin) {
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime dateDebut,
 
-        log.info("Génération du relevé global pour le client ID: {} du {} au {}",
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+            LocalDateTime dateFin
+    ) {
+
+        log.info("📄 Génération relevé client {} du {} au {}",
                 clientId, dateDebut, dateFin);
 
-        byte[] pdfBytes = releveService.genererReleveGlobalClient(clientId, dateDebut, dateFin);
+        byte[] pdf = releveService.genererReleveGlobalClient(
+                clientId, dateDebut, dateFin
+        );
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "releve_global_client_" + clientId + ".pdf");
-        headers.setContentLength(pdfBytes.length);
+        headers.setContentDispositionFormData(
+                "attachment",
+                "releve_client_" + clientId + ".pdf"
+        );
+        headers.setContentLength(pdf.length);
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(pdfBytes);
+                .body(pdf);
     }
 }
