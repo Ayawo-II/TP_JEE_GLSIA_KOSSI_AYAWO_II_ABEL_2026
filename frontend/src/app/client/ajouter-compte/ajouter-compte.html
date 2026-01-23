@@ -6,7 +6,7 @@
       <a routerLink="/client/comptes" class="back-link">←</a>
       Créer un nouveau compte
     </h1>
-    <p *ngIf="clientInfo" class="client-info">Pour : {{ clientInfo.clientNom }}</p>
+    <p *ngIf="clientInfo" class="client-info">Pour : {{ clientInfo.nom }} {{ clientInfo.prenom }}</p>
   </div>
 
   <!-- Messages -->
@@ -41,12 +41,6 @@
 
     <!-- Actions -->
     <div class="form-actions">
-      <button 
-        type="button" 
-        class="btn cancel" 
-        routerLink="/client/comptes">
-        Annuler
-      </button>
       <button type="submit" class="btn submit">
         <span *ngIf="!loading">Créer le compte</span>
         <span *ngIf="loading">Création en cours...</span>

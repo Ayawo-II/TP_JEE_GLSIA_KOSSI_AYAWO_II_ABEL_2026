@@ -24,7 +24,6 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        log.info("POST /api/auth/login - Tentative de connexion");
 
         AuthResponseDTO response = authService.login(loginRequest);
 

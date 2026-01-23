@@ -54,8 +54,6 @@ public class SecurityConfig {
                         .requestMatchers("/releves/**").permitAll()
                         .requestMatchers("/user").permitAll()
                         .requestMatchers("/user/username/{username}").permitAll()
-                        .requestMatchers("/transaction").permitAll()
-                        .requestMatchers("/transaction/client/**").permitAll()
 
                         .anyRequest().authenticated()
                 )
